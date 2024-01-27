@@ -35,6 +35,7 @@ int run(char* script);
 int echo(char* value);
 int my_ls();
 int my_touch(char* file_name);
+int my_cd(char* dirname);
 int badcommandFileDoesNotExist();
 
 // Interpret commands and their arguments
@@ -43,6 +44,7 @@ int interpreter(char* command_args[], int args_size){
 	char value_buffer[600]="";
 	char dirname_buffer[200]="";
 	char file_name_buffer[200]="";
+	char new_dirname_buffer[200]="";
 
 	// if ( args_size < 1 || args_size > MAX_ARGS_SIZE){
 	// 	return badcommand();
@@ -63,8 +65,10 @@ int interpreter(char* command_args[], int args_size){
 		return quit();
 
 	} else if (strcmp(command_args[0], "set")==0) {
-		//set
+		//set: takes at least 1 token and at most five tokens
 		if (args_size > 7 || args_size < 3) return badSetCommand();
+
+		// concatenate char elements in one string
 		for(int j = 2; j < args_size; j++){
 			strcat(value_buffer, command_args[j]);
 			if(j < args_size - 1){
@@ -95,11 +99,11 @@ int interpreter(char* command_args[], int args_size){
 		//my_mkdir
 		if (args_size < 2) return badcommand(); //directory name cannot be blank
 
-		//Allow space in directory names by concatenating several strings into one
+		// concatenate char elements in one string
 		for(int j = 1; j < args_size; j++){
 			strcat(dirname_buffer, command_args[j]);
 			if(j < args_size - 1){
-				strcat(dirname_buffer, " ");
+				strcat(dirname_buffer, " "); //allow space in directory names
 			}
 		}
 		return mkdir(dirname_buffer, S_IRWXU);
@@ -108,14 +112,26 @@ int interpreter(char* command_args[], int args_size){
 		//my_touch
 		if (args_size < 2) return badcommand(); //file name cannot be blank
 
-		//Allow space in file names by concatenating several strings into one
+		// concatenate char elements in one string
 		for(int j = 1; j < args_size; j++){
 			strcat(file_name_buffer, command_args[j]);
 			if(j < args_size - 1){
-				strcat(file_name_buffer, " ");
+				strcat(file_name_buffer, " "); //allow space in file names
 			}
 		}
 		return my_touch(file_name_buffer);
+
+	} else if (strcmp(command_args[0], "my_cd")==0) {
+		//my_cd
+		if (args_size < 2 ) return my_cd(".."); //empty input: go one level up
+
+		for(int j = 1; j < args_size; j++){
+			strcat(new_dirname_buffer, command_args[j]);
+			if(j < args_size - 1){
+				strcat(new_dirname_buffer, " "); //allow space in directory
+			}
+		}
+		return my_cd(new_dirname_buffer);
 
 	} else return badcommand();
 }
@@ -194,7 +210,7 @@ int echo(char* value){
 	return 0;
 }
 
-//My_ls: list all the files present in the current directory
+//my_ls: list all the files present in the current directory
 int my_ls(){
     if (system("ls") == -1) {
         printf("%s\n", "invoking ls failed"); //invoking system ls failed
@@ -204,7 +220,7 @@ int my_ls(){
     return 0;
 }
 
-//Create a file with given file name in current directory
+//my_touch: create a file with given file name in current directory
 int my_touch(char* file_name){
 	//Create a file if it doesn't exit
 	if(open(file_name, O_CREAT) == -1) {
@@ -215,3 +231,24 @@ int my_touch(char* file_name){
 	return 0;
 }
 
+//my_cd: change the current directory to the specified directory
+int my_cd(char* dirname){
+	char cur_dirname[1024];
+
+	if(chdir(dirname) == 0){
+
+		//get current working directory and store it in cur_dirname
+		if(getcwd(cur_dirname, sizeof(cur_dirname)) != NULL){
+			printf("%s\n", cur_dirname);
+			return 0;
+		} else {
+			printf("%s\n", "failed to get current working directory");
+			return -1;
+		}	
+	} else {
+		printf("%s\n", "Bad command: my_cd"); //directory name does not exist
+		return -1;
+	}
+
+	return 0;
+}
