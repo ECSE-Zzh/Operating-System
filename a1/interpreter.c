@@ -38,6 +38,7 @@ int my_ls();
 int my_mkdir(char* dirname);
 int my_touch(char* file_name);
 int my_cd(char* dirname);
+int my_cat(char* file_name);
 int badcommandFileDoesNotExist();
 
 // Interpret commands and their arguments
@@ -47,6 +48,7 @@ int interpreter(char* command_args[], int args_size){
 	char dirname_buffer[200]="";
 	char file_name_buffer[200]="";
 	char new_dirname_buffer[200]="";
+	char file_content_buffer[200]="";
 
 	// if ( args_size < 1 || args_size > MAX_ARGS_SIZE){
 	// 	return badcommand();
@@ -134,6 +136,16 @@ int interpreter(char* command_args[], int args_size){
 			}
 		}
 		return my_cd(new_dirname_buffer);
+
+	} else if (strcmp(command_args[0], "my_cat")==0) {
+		//my_cat
+		for(int j = 1; j < args_size; j++){
+			strcat(file_content_buffer, command_args[j]);
+			if(j < args_size - 1){
+				strcat(file_content_buffer, " "); //allow space in file name
+			}
+		}
+		return my_cat(file_content_buffer);
 
 	} else return badcommand();
 }
@@ -259,5 +271,26 @@ int my_cd(char* dirname){
 	// 	// return -1;
 	// }
 
+	return 0;
+}
+
+//my_cat: open file and read its content
+int my_cat (char* file_name){
+	FILE *myFile = fopen(file_name, "r"); //open file
+	char file_content[1000] = "";
+
+	//check if file is opened successfully
+	if(myFile == NULL){
+		printf("%s\n", "failed to open file");
+		return -1;
+	}
+
+	//read file
+	while(fgets(file_content, sizeof(file_content), myFile) != NULL){
+		printf("%s\n", file_content);
+	}
+
+	//close file
+	fclose(myFile);
 	return 0;
 }
