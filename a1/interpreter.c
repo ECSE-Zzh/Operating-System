@@ -34,6 +34,7 @@ int print(char* var);
 int run(char* script);
 int echo(char* value);
 int my_ls();
+int my_mkdir(char* dirname);
 int my_touch(char* file_name);
 int my_cd(char* dirname);
 int badcommandFileDoesNotExist();
@@ -106,7 +107,7 @@ int interpreter(char* command_args[], int args_size){
 				strcat(dirname_buffer, " "); //allow space in directory names
 			}
 		}
-		return mkdir(dirname_buffer, S_IRWXU);
+		return my_mkdir(dirname_buffer);
 
 	} else if (strcmp(command_args[0], "my_touch")==0) {
 		//my_touch
@@ -220,6 +221,10 @@ int my_ls(){
     return 0;
 }
 
+int my_mkdir(char* dirname){
+	return mkdir(dirname, S_IRWXU);
+}
+
 //my_touch: create a file with given file name in current directory
 int my_touch(char* file_name){
 	//Create a file if it doesn't exit
@@ -233,7 +238,7 @@ int my_touch(char* file_name){
 
 //my_cd: change the current directory to the specified directory
 int my_cd(char* dirname){
-	
+
 	if(chdir(dirname) != 0) printf("%s\n", "Bad command: my_cd"); //directory name does not exist
 	// char cur_dirname[1024];
 
