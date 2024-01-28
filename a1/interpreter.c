@@ -233,22 +233,24 @@ int my_touch(char* file_name){
 
 //my_cd: change the current directory to the specified directory
 int my_cd(char* dirname){
-	char cur_dirname[1024];
+	
+	if(chdir(dirname) != 0) printf("%s\n", "Bad command: my_cd"); //directory name does not exist
+	// char cur_dirname[1024];
 
-	if(chdir(dirname) == 0){
+	// if(chdir(dirname) == 0){
 
-		//get current working directory and store it in cur_dirname
-		if(getcwd(cur_dirname, sizeof(cur_dirname)) != NULL){
-			printf("%s\n", cur_dirname);
-			return 0;
-		} else {
-			printf("%s\n", "failed to get current working directory");
-			// return -1;
-		}	
-	} else {
-		printf("%s\n", "Bad command: my_cd"); //directory name does not exist
-		// return -1;
-	}
+	// 	//get current working directory and store it in cur_dirname
+	// 	if(getcwd(cur_dirname, sizeof(cur_dirname)) != NULL){
+	// 		printf("%s\n", cur_dirname);
+	// 		return 0;
+	// 	} else {
+	// 		printf("%s\n", "failed to get current working directory");
+	// 		// return -1;
+	// 	}	
+	// } else {
+	// 	printf("%s\n", "Bad command: my_cd"); //directory name does not exist
+	// 	// return -1;
+	// }
 
 	return 0;
 }
