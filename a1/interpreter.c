@@ -243,11 +243,11 @@ int my_cd(char* dirname){
 			return 0;
 		} else {
 			printf("%s\n", "failed to get current working directory");
-			return -1;
+			// return -1;
 		}	
 	} else {
 		printf("%s\n", "Bad command: my_cd"); //directory name does not exist
-		return -1;
+		// return -1;
 	}
 
 	return 0;
