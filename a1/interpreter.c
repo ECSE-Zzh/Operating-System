@@ -177,6 +177,7 @@ int set(char* var, char* value){
 
 int print(char* var){
 	printf("%s\n", mem_get_value(var)); 
+	fflush(stdout);
 	return 0;
 }
 
@@ -218,17 +219,19 @@ int echo(char* value){
 
 		dollar_echo =  mem_get_value(value);
 		printf("%s\n", dollar_echo);
+		fflush(stdout);
 		return 0;
 	} 
 
 	printf("%s\n", value);
+	fflush(stdout);
 	return 0;
 }
 
 //my_ls: list all the files present in the current directory
 int my_ls(){
     if (system("ls") == -1) {
-        printf("%s\n", "invoking ls failed"); //invoking system ls failed
+        // printf("%s\n", "invoking ls failed"); //invoking system ls failed
         return -1;
     }
 
@@ -243,7 +246,7 @@ int my_mkdir(char* dirname){
 int my_touch(char* file_name){
 	//Create a file if it doesn't exit
 	if(open(file_name, O_CREAT) == -1) {
-		printf("%s\n", "failed to create file");
+		// printf("%s\n", "failed to create file");
 		return -1;
 	}
 
