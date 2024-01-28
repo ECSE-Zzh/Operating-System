@@ -280,10 +280,7 @@ int my_cat (char* file_name){
 	char file_content[1000] = "";
 
 	//check if file is opened successfully
-	if(myFile == NULL){
-		printf("%s\n", "failed to open file");
-		return -1;
-	}
+	if(myFile == NULL) printf("%s\n", "Bad command: my_cat");
 
 	//read file
 	while(fgets(file_content, sizeof(file_content), myFile) != NULL){
