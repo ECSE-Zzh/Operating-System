@@ -213,12 +213,13 @@ int echo(char* value){
 
 //my_ls: list all the files present in the current directory
 int my_ls(){
-    if (system("ls") == -1) {
-        printf("%s\n", "invoking ls failed"); //invoking system ls failed
-        return -1;
-    }
+    // if (system("ls") == -1) {
+    //     printf("%s\n", "invoking ls failed"); //invoking system ls failed
+    //     return -1;
+    // }
 
-    return 0;
+    // return system("ls");
+	return ls();
 }
 
 int my_mkdir(char* dirname){
