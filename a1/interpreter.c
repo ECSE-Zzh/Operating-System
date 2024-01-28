@@ -219,7 +219,7 @@ int my_ls(){
         return -1;
     }
 
-    return system("ls");
+    return 0;
 }
 
 int my_mkdir(char* dirname){
