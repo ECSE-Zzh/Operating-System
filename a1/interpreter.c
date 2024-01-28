@@ -287,7 +287,7 @@ int my_cat (char* file_name){
 
 	//read file
 	while(fgets(file_content, sizeof(file_content), myFile) != NULL){
-		printf("%s\n", file_content);
+		printf("%s", file_content);
 	}
 
 	//close file
