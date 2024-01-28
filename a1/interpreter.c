@@ -146,6 +146,7 @@ set VAR STRING		Assigns a value to shell memory\n \
 print VAR		Displays the STRING assigned to VAR\n \
 run SCRIPT.TXT		Executes the file SCRIPT.TXT\n ";
 	printf("%s\n", help_string);
+	fflush(stdout);
 	return 0;
 }
 
@@ -213,13 +214,12 @@ int echo(char* value){
 
 //my_ls: list all the files present in the current directory
 int my_ls(){
-    // if (system("ls") == -1) {
-    //     printf("%s\n", "invoking ls failed"); //invoking system ls failed
-    //     return -1;
-    // }
+    if (system("ls") == -1) {
+        printf("%s\n", "invoking ls failed"); //invoking system ls failed
+        return -1;
+    }
 
-    // return system("ls");
-	return ls();
+    return system("ls");
 }
 
 int my_mkdir(char* dirname){
