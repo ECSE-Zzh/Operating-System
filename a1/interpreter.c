@@ -18,7 +18,6 @@ int badSetCommand(){
 
 int badcommand(){
 	printf("%s\n", "Unknown Command");
-	fflush(stdout);
 	return 1;
 }
 
@@ -49,10 +48,10 @@ int interpreter(char* command_args[], int args_size){
 	char file_name_buffer[200]="";
 	char new_dirname_buffer[200]="";
 	char file_content_buffer[200]="";
-
-	// if ( args_size < 1 || args_size > MAX_ARGS_SIZE){
-	// 	return badcommand();
-	// }
+	//|| args_size > MAX_ARGS_SIZE
+	if ( args_size < 1 ){
+		return badcommand();
+	}
 
 	for ( i=0; i<args_size; i++){ //strip spaces new line etc
 		command_args[i][strcspn(command_args[i], "\r\n")] = 0;
@@ -70,7 +69,10 @@ int interpreter(char* command_args[], int args_size){
 
 	} else if (strcmp(command_args[0], "set")==0) {
 		//set: takes at least 1 token and at most five tokens
-		if (args_size > 7 || args_size < 3) return badSetCommand();
+		if (args_size > 7 || args_size < 3) {
+			// printf("%s\n", "Bad command: set");
+			return badSetCommand();
+		}
 
 		// concatenate char elements in one string
 		for(int j = 2; j < args_size; j++){
@@ -177,7 +179,6 @@ int set(char* var, char* value){
 
 int print(char* var){
 	printf("%s\n", mem_get_value(var)); 
-	fflush(stdout);
 	return 0;
 }
 
@@ -219,12 +220,10 @@ int echo(char* value){
 
 		dollar_echo =  mem_get_value(value);
 		printf("%s\n", dollar_echo);
-		fflush(stdout);
 		return 0;
 	} 
 
 	printf("%s\n", value);
-	fflush(stdout);
 	return 0;
 }
 
