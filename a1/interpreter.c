@@ -18,6 +18,7 @@ int badSetCommand(){
 
 int badcommand(){
 	printf("%s\n", "Unknown Command");
+	fflush(stdout);
 	return 1;
 }
 
