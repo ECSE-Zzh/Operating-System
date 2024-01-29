@@ -16,6 +16,11 @@ int badSetCommand(){
 	return 1;
 }
 
+int badIfCommand(){
+	printf("%s\n", "Empty if clause");
+	return 1;
+}
+
 int badcommand(){
 	printf("%s\n", "Unknown Command");
 	return 1;
@@ -38,6 +43,7 @@ int my_mkdir(char* dirname);
 int my_touch(char* file_name);
 int my_cd(char* dirname);
 int my_cat(char* file_name);
+int my_if(char* identifier1, char* op, char* identifier2, char* myShell_command1, char* val1, char* myShell_command2, char* val2);
 int badcommandFileDoesNotExist();
 
 // Interpret commands and their arguments
@@ -48,7 +54,8 @@ int interpreter(char* command_args[], int args_size){
 	char file_name_buffer[200]="";
 	char new_dirname_buffer[200]="";
 	char file_content_buffer[200]="";
-	//|| args_size > MAX_ARGS_SIZE
+
+	//avoid blank line as an input
 	if ( args_size < 1 ){
 		return badcommand();
 	}
@@ -149,6 +156,13 @@ int interpreter(char* command_args[], int args_size){
 		}
 		return my_cat(file_content_buffer);
 
+	} else if (strcmp(command_args[0], "if")==0) {
+		if(strcmp(command_args[4], "then") != 0 || strcmp(command_args[7], "else") != 0 || strcmp(command_args[10], "fi") != 0) {
+			// printf("%s\n%s\n%s\n%s\n", command_args[0], command_args[4], command_args[7], command_args[10]);
+			return badIfCommand();
+		}
+		return my_if(command_args[1], command_args[2], command_args[3], command_args[5], command_args[6], command_args[8], command_args[9]);
+
 	} else return badcommand();
 }
 
@@ -161,7 +175,7 @@ set VAR STRING		Assigns a value to shell memory\n \
 print VAR		Displays the STRING assigned to VAR\n \
 run SCRIPT.TXT		Executes the file SCRIPT.TXT\n ";
 	printf("%s\n", help_string);
-	fflush(stdout);
+	fflush(stdout); // clears print statement buffer
 	return 0;
 }
 
@@ -291,5 +305,63 @@ int my_cat (char* file_name){
 
 	//close file
 	fclose(myFile);
+	return 0;
+}
+
+int my_if(char* identifier1, char* op, char* identifier2, char* myShell_command1, char* val1, char* myShell_command2, char* val2){
+	// char* dollar_identifier1 = "";
+	int length1 = strlen(identifier1);
+	// char* dollar_identifier2 = "";
+	int length2 = strlen(identifier2);
+	int d = 0;
+	char* command_args1[2] = {myShell_command1, val1};
+	char* command_args2[2] = {myShell_command2, val2};
+
+	if(identifier1[0] == '$'){
+		//remove the "$" sign from input
+    	for (int j = 0; j < length1; j++) {
+        	identifier1[j] = identifier1[j + 1];
+    	}		
+		identifier1 =  mem_get_value(identifier1);
+	}
+
+	if(identifier2[0] == '$'){
+		//remove the "$" sign from input
+    	for (int j = 0; j < length2; j++) {
+        	identifier2[j] = identifier2[j + 1];
+    	}		
+		identifier2 =  mem_get_value(identifier2);
+		// printf("%s\n", identifier2);
+	}
+
+	if(strcmp(op, "==")==0){
+		d = 1;
+	} else if(strcmp(op, "!=")==0){
+		d = 2;
+	}
+
+	switch (d)
+	{
+	case 1:
+		// op: ==
+		if(strcmp(identifier1,identifier2) == 0){
+			interpreter(command_args1, 2); //when == is true
+		} else {
+			interpreter(command_args2, 2); //when == is false
+		}
+		break;
+
+	case 2:
+		// op: !=
+		if(strcmp(identifier1,identifier2) != 0){
+			interpreter(command_args1, 2); //when != is true
+		} else {
+			interpreter(command_args2, 2); //when != is false
+		}
+		break;
+
+	default:
+		break;
+	}
 	return 0;
 }
