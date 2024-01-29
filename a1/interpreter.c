@@ -157,10 +157,7 @@ int interpreter(char* command_args[], int args_size){
 		return my_cat(file_content_buffer);
 
 	} else if (strcmp(command_args[0], "if")==0) {
-		if(strcmp(command_args[4], "then") != 0 || strcmp(command_args[7], "else") != 0 || strcmp(command_args[10], "fi") != 0) {
-			// printf("%s\n%s\n%s\n%s\n", command_args[0], command_args[4], command_args[7], command_args[10]);
-			return badIfCommand();
-		}
+		if(args_size != 11 || (command_args[4], "then") != 0 || strcmp(command_args[7], "else") != 0 || strcmp(command_args[10], "fi") != 0) return badIfCommand();
 		return my_if(command_args[1], command_args[2], command_args[3], command_args[5], command_args[6], command_args[8], command_args[9]);
 
 	} else return badcommand();
