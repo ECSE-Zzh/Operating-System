@@ -157,9 +157,9 @@ int interpreter(char* command_args[], int args_size){
 
 	} else if (strcmp(command_args[0], "my_cd")==0) {
 		//my_cd
-		if(args_size > 2) return badcommand();
+		if(args_size != 2) return badcommand();
 
-		if(args_size == 1) return my_cd("/");
+		// if(args_size == 1) return my_cd("/");
 	
 		// if (args_size == 1 || isspace(*command_args[1]) ) return my_cd("/"); //empty input: go one level up
 
