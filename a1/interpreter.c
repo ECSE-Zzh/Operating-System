@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h> 
+#include <ctype.h>
 #include <sys/types.h> //for my_mkdir
 #include <sys/stat.h> // these could be useful? for my_mkdir
 #include <fcntl.h> //for my_touch
@@ -13,22 +14,38 @@ int MAX_ARGS_SIZE = 3;
 // For set command only
 int badSetCommand(){
 	printf("%s\n", "Bad command: set");
+	fflush(stdout); // clears print statement buffer
 	return 1;
 }
 
 int badIfCommand(){
 	printf("%s\n", "Empty if clause");
+	fflush(stdout); // clears print statement buffer
+	return 1;
+}
+
+int badCatCommand(){
+	printf("%s\n", "Bad command: my_cat");
+	fflush(stdout); // clears print statement buffer
+	return 1;
+}
+
+int badCdCommand(){
+	printf("%s\n", "Bad command: my_cd");
+	fflush(stdout); // clears print statement buffer
 	return 1;
 }
 
 int badcommand(){
 	printf("%s\n", "Unknown Command");
+	fflush(stdout); // clears print statement buffer
 	return 1;
 }
 
 // For run command only
 int badcommandFileDoesNotExist(){
 	printf("%s\n", "Bad command: File not found");
+	fflush(stdout); // clears print statement buffer
 	return 3;
 }
 
@@ -50,8 +67,8 @@ int badcommandFileDoesNotExist();
 int interpreter(char* command_args[], int args_size){
 	int i;
 	char value_buffer[600]="";
-	char dirname_buffer[200]="";
-	char file_name_buffer[200]="";
+	// char dirname_buffer[200]="";
+	// char file_name_buffer[200]="";
 	char new_dirname_buffer[200]="";
 	char file_content_buffer[200]="";
 
@@ -110,51 +127,60 @@ int interpreter(char* command_args[], int args_size){
 
 	} else if (strcmp(command_args[0], "my_mkdir")==0) {
 		//my_mkdir
-		if (args_size < 2) return badcommand(); //directory name cannot be blank
+		if(args_size != 2 || !isalnum(*command_args[1])) return badcommand();
+		
+		// if (args_size < 2) return badcommand(); //directory name cannot be blank
 
-		// concatenate char elements in one string
-		for(int j = 1; j < args_size; j++){
-			strcat(dirname_buffer, command_args[j]);
-			if(j < args_size - 1){
-				strcat(dirname_buffer, " "); //allow space in directory names
-			}
-		}
-		return my_mkdir(dirname_buffer);
+		// // concatenate char elements in one string
+		// for(int j = 1; j < args_size; j++){
+		// 	strcat(dirname_buffer, command_args[j]);
+		// 	if(j < args_size - 1){
+		// 		strcat(dirname_buffer, " "); //allow space in directory names
+		// 	}
+		// }
+		return my_mkdir(command_args[1]);
 
 	} else if (strcmp(command_args[0], "my_touch")==0) {
 		//my_touch
-		if (args_size < 2) return badcommand(); //file name cannot be blank
+		if(args_size != 2 || !isalnum(*command_args[1])) return badcommand();
+
+		//if (args_size < 2) return badcommand(); //file name cannot be blank
 
 		// concatenate char elements in one string
-		for(int j = 1; j < args_size; j++){
-			strcat(file_name_buffer, command_args[j]);
-			if(j < args_size - 1){
-				strcat(file_name_buffer, " "); //allow space in file names
-			}
-		}
-		return my_touch(file_name_buffer);
+		// for(int j = 1; j < args_size; j++){
+		// 	strcat(file_name_buffer, command_args[j]);
+		// 	if(j < args_size - 1){
+		// 		strcat(file_name_buffer, " "); //allow space in file names
+		// 	}
+		// }
+		return my_touch(command_args[1]);
 
 	} else if (strcmp(command_args[0], "my_cd")==0) {
 		//my_cd
-		if (args_size < 2 ) return my_cd(".."); //empty input: go one level up
+		if(args_size > 2) return badcommand();
 
-		for(int j = 1; j < args_size; j++){
-			strcat(new_dirname_buffer, command_args[j]);
-			if(j < args_size - 1){
-				strcat(new_dirname_buffer, " "); //allow space in directory
-			}
-		}
-		return my_cd(new_dirname_buffer);
+		if(args_size == 1) return my_cd("/");
+	
+		// if (args_size == 1 || isspace(*command_args[1]) ) return my_cd("/"); //empty input: go one level up
+
+		// for(int j = 1; j < args_size; j++){
+		// 	strcat(new_dirname_buffer, command_args[j]);
+		// 	if(j < args_size - 1){
+		// 		strcat(new_dirname_buffer, " "); //allow space in directory
+		// 	}
+		// }
+		return my_cd(command_args[1]);
 
 	} else if (strcmp(command_args[0], "my_cat")==0) {
 		//my_cat
-		for(int j = 1; j < args_size; j++){
-			strcat(file_content_buffer, command_args[j]);
-			if(j < args_size - 1){
-				strcat(file_content_buffer, " "); //allow space in file name
-			}
-		}
-		return my_cat(file_content_buffer);
+		if(args_size != 2 || !isalnum(*command_args[1])) return badcommand();
+		// for(int j = 1; j < args_size; j++){
+		// 	strcat(file_content_buffer, command_args[j]);
+		// 	if(j < args_size - 1){
+		// 		strcat(file_content_buffer, " "); //allow space in file name
+		// 	}
+		// }
+		return my_cat(command_args[1]);
 
 	} else if (strcmp(command_args[0], "if")==0) {
 		if(args_size != 11)	return badIfCommand();	
@@ -182,6 +208,7 @@ run SCRIPT.TXT		Executes the file SCRIPT.TXT\n ";
 
 int quit(){
 	printf("%s\n", "Bye!");
+	fflush(stdout); // clears print statement buffer
 	exit(0);
 }
 
@@ -194,6 +221,7 @@ int set(char* var, char* value){
 
 int print(char* var){
 	printf("%s\n", mem_get_value(var)); 
+	fflush(stdout); // clears print statement buffer
 	return 0;
 }
 
@@ -235,15 +263,20 @@ int echo(char* value){
 
 		dollar_echo =  mem_get_value(value);
 		printf("%s\n", dollar_echo);
+		fflush(stdout); // clears print statement buffer
 		return 0;
 	} 
 
 	printf("%s\n", value);
+	fflush(stdout); // clears print statement buffer
 	return 0;
 }
 
 //my_ls: list all the files present in the current directory
 int my_ls(){
+
+	fflush(stdout); // clears print statement buffer
+
     if (system("ls") == -1) {
         // printf("%s\n", "invoking ls failed"); //invoking system ls failed
         return -1;
@@ -253,11 +286,17 @@ int my_ls(){
 }
 
 int my_mkdir(char* dirname){
+
+	fflush(stdout); // clears print statement buffer
+
 	return mkdir(dirname, S_IRWXU);
 }
 
 //my_touch: create a file with given file name in current directory
 int my_touch(char* file_name){
+
+	fflush(stdout); // clears print statement buffer
+
 	//Create a file if it doesn't exit
 	if(open(file_name, O_CREAT) == -1) {
 		// printf("%s\n", "failed to create file");
@@ -269,9 +308,19 @@ int my_touch(char* file_name){
 
 //my_cd: change the current directory to the specified directory
 int my_cd(char* dirname){
+	char cur_dirname[1024];
 
-	if(chdir(dirname) != 0) printf("%s\n", "Bad command: my_cd"); //directory name does not exist
-	// char cur_dirname[1024];
+	fflush(stdout); // clears print statement buffer
+
+	if(chdir(dirname) != 0)  return badCdCommand(); //directory name does not exist
+
+	// if(getcwd(cur_dirname, sizeof(cur_dirname)) != NULL){
+	// 		printf("%s\n", cur_dirname);
+	// 		return 0;
+	// 	} else {
+	// 		printf("%s\n", "failed to get current working directory");
+	// 		// return -1;
+	// 	}	
 
 	// if(chdir(dirname) == 0){
 
@@ -284,7 +333,7 @@ int my_cd(char* dirname){
 	// 		// return -1;
 	// 	}	
 	// } else {
-	// 	printf("%s\n", "Bad command: my_cd"); //directory name does not exist
+	// 	printf("%s\n", "lol: my_cd"); //directory name does not exist
 	// 	// return -1;
 	// }
 
@@ -297,11 +346,12 @@ int my_cat (char* file_name){
 	char file_content[1000] = "";
 
 	//check if file is opened successfully
-	if(myFile == NULL) printf("%s\n", "Bad command: my_cat");
-
+	if(myFile == NULL) return badCatCommand();
+	
 	//read file
 	while(fgets(file_content, sizeof(file_content), myFile) != NULL){
 		printf("%s", file_content);
+		fflush(stdout); // clears print statement buffer
 	}
 
 	//close file
