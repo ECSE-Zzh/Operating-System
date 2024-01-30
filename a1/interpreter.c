@@ -67,10 +67,9 @@ int badcommandFileDoesNotExist();
 int interpreter(char* command_args[], int args_size){
 	int i;
 	char value_buffer[600]="";
-	// char dirname_buffer[200]="";
-	// char file_name_buffer[200]="";
 	char new_dirname_buffer[200]="";
 	char file_content_buffer[200]="";
+	char* check_dollar = "";
 
 	//avoid blank line as an input
 	if ( args_size < 1 ){
@@ -93,18 +92,20 @@ int interpreter(char* command_args[], int args_size){
 
 	} else if (strcmp(command_args[0], "set")==0) {
 		//set: takes at least 1 token and at most five tokens
-		if (args_size > 7 || args_size < 3) {
-			// printf("%s\n", "Bad command: set");
-			return badSetCommand();
-		}
+		if (args_size > 7 || args_size < 3) return badSetCommand();
 
 		// concatenate char elements in one string
 		for(int j = 2; j < args_size; j++){
+
+			//set: only takes alphanumeric tokens
+			if(!isalnum(*command_args[j])) return badSetCommand();
+
 			strcat(value_buffer, command_args[j]);
 			if(j < args_size - 1){
 				strcat(value_buffer, " ");
 			}
 		}	
+
 		return set(command_args[1], value_buffer);	
 	
 	} else if (strcmp(command_args[0], "print")==0) {
@@ -117,71 +118,56 @@ int interpreter(char* command_args[], int args_size){
 	
 	} else if (strcmp(command_args[0], "echo")==0) {
 		//echo
-		if (args_size != 2) return badcommand(); //take only one token string
+
+		if(args_size != 2) return badcommand(); //echo only takes one alphanumeric string
+
+		//echo $var: get and print var value
+		check_dollar = command_args[1];
+		int length = strlen(check_dollar);
+		if(check_dollar[0] == '$'){
+			//remove the "$" sign from input and get its value
+    		for (int j = 0; j < length; j++) {
+        		check_dollar[j] = check_dollar[j + 1];
+    		}
+
+			if(!isalnum(*check_dollar)) return badcommand(); //var name can only be alphanumeric
+			
+			check_dollar =  mem_get_value(check_dollar);
+			return echo(check_dollar);
+		} 
+
+		//non-alphanumeric input (other than $) is not valid
+		if (!isalnum(*command_args[1])) return badcommand(); //take only one token string
+
 		return echo(command_args[1]);
 
 	} else if (strcmp(command_args[0], "my_ls")==0) {
-		//my_ls
+		//my_ls: no input
 		if (args_size != 1) return badcommand(); 
 		return my_ls();
 
 	} else if (strcmp(command_args[0], "my_mkdir")==0) {
-		//my_mkdir
+		//my_mkdir: only take one alphanumeric input: directory name
 		if(args_size != 2 || !isalnum(*command_args[1])) return badcommand();
 		
-		// if (args_size < 2) return badcommand(); //directory name cannot be blank
-
-		// // concatenate char elements in one string
-		// for(int j = 1; j < args_size; j++){
-		// 	strcat(dirname_buffer, command_args[j]);
-		// 	if(j < args_size - 1){
-		// 		strcat(dirname_buffer, " "); //allow space in directory names
-		// 	}
-		// }
 		return my_mkdir(command_args[1]);
 
 	} else if (strcmp(command_args[0], "my_touch")==0) {
-		//my_touch
+		//my_touch: only take one alphanumeric input: file name
 		if(args_size != 2 || !isalnum(*command_args[1])) return badcommand();
 
-		//if (args_size < 2) return badcommand(); //file name cannot be blank
-
-		// concatenate char elements in one string
-		// for(int j = 1; j < args_size; j++){
-		// 	strcat(file_name_buffer, command_args[j]);
-		// 	if(j < args_size - 1){
-		// 		strcat(file_name_buffer, " "); //allow space in file names
-		// 	}
-		// }
 		return my_touch(command_args[1]);
 
 	} else if (strcmp(command_args[0], "my_cd")==0) {
-		//my_cd
-		if(args_size != 2) return badcommand();
+		//my_cd: only take one input: directory
+		if(args_size != 2) return badCdCommand();
 
-		// if(args_size == 1) return my_cd("/");
-	
-		// if (args_size == 1 || isspace(*command_args[1]) ) return my_cd("/"); //empty input: go one level up
-
-		// for(int j = 1; j < args_size; j++){
-		// 	strcat(new_dirname_buffer, command_args[j]);
-		// 	if(j < args_size - 1){
-		// 		strcat(new_dirname_buffer, " "); //allow space in directory
-		// 	}
-		// }
 		return my_cd(command_args[1]);
 
 	} else if (strcmp(command_args[0], "my_cat")==0) {
-		//my_cat
-		if(args_size != 2) return badcommand();
+		//my_cat: only take one input: file name
+		if(args_size != 2) return badCatCommand();
 
-
-		// for(int j = 1; j < args_size; j++){
-		// 	strcat(file_content_buffer, command_args[j]);
-		// 	if(j < args_size - 1){
-		// 		strcat(file_content_buffer, " "); //allow space in file name
-		// 	}
-		// }
 		return my_cat(command_args[1]);
 
 	} else if (strcmp(command_args[0], "if")==0) {
@@ -253,24 +239,10 @@ int run(char* script){
 }
 
 int echo(char* value){
-	char* dollar_echo = "";
-	int length = strlen(value);
-
-	if(value[0] == '$'){
-
-		//remove the "$" sign from input
-    	for (int j = 0; j < length; j++) {
-        	value[j] = value[j + 1];
-    	}		
-
-		dollar_echo =  mem_get_value(value);
-		printf("%s\n", dollar_echo);
-		fflush(stdout); // clears print statement buffer
-		return 0;
-	} 
 
 	printf("%s\n", value);
 	fflush(stdout); // clears print statement buffer
+
 	return 0;
 }
 
@@ -278,9 +250,7 @@ int echo(char* value){
 int my_ls(){
 
 	fflush(stdout); // clears print statement buffer
-
     if (system("ls") == -1) {
-        // printf("%s\n", "invoking ls failed"); //invoking system ls failed
         return -1;
     }
 
@@ -290,7 +260,6 @@ int my_ls(){
 int my_mkdir(char* dirname){
 
 	fflush(stdout); // clears print statement buffer
-
 	return mkdir(dirname, S_IRWXU);
 }
 
@@ -301,7 +270,6 @@ int my_touch(char* file_name){
 
 	//Create a file if it doesn't exit
 	if(open(file_name, O_CREAT) == -1) {
-		// printf("%s\n", "failed to create file");
 		return -1;
 	}
 
@@ -310,34 +278,9 @@ int my_touch(char* file_name){
 
 //my_cd: change the current directory to the specified directory
 int my_cd(char* dirname){
-	// char cur_dirname[1024];
-
+	char cur_dirname[1024];
 	fflush(stdout); // clears print statement buffer
-
 	if(chdir(dirname) != 0)  return badCdCommand(); //directory name does not exist
-
-	// if(getcwd(cur_dirname, sizeof(cur_dirname)) != NULL){
-	// 		printf("%s\n", cur_dirname);
-	// 		return 0;
-	// 	} else {
-	// 		printf("%s\n", "failed to get current working directory");
-	// 		// return -1;
-	// 	}	
-
-	// if(chdir(dirname) == 0){
-
-	// 	//get current working directory and store it in cur_dirname
-	// 	if(getcwd(cur_dirname, sizeof(cur_dirname)) != NULL){
-	// 		printf("%s\n", cur_dirname);
-	// 		return 0;
-	// 	} else {
-	// 		printf("%s\n", "failed to get current working directory");
-	// 		// return -1;
-	// 	}	
-	// } else {
-	// 	printf("%s\n", "lol: my_cd"); //directory name does not exist
-	// 	// return -1;
-	// }
 
 	return 0;
 }
@@ -348,18 +291,7 @@ int my_cat (char* file_name){
 	char file_content[1000] = "";
 
 	//check if file is opened successfully
-	if(myFile == NULL){
-		// // printf("%s\n", "why here?");
-		// if(getcwd(cur_dirname, sizeof(cur_dirname)) != NULL){
-		// 	printf("%s\n", cur_dirname);
-		// 	return 0;
-		// } else {
-		// 	printf("%s\n", "failed to get current working directory");
-		// 	// return -1;
-		// }
-		// perror("fopen");
-		return badCatCommand();
-	} 
+	if(myFile == NULL) return badCatCommand(); 
 	
 	//read file
 	while(fgets(file_content, sizeof(file_content), myFile) != NULL){
@@ -373,14 +305,13 @@ int my_cat (char* file_name){
 }
 
 int my_if(char* identifier1, char* op, char* identifier2, char* myShell_command1, char* val1, char* myShell_command2, char* val2){
-	// char* dollar_identifier1 = "";
 	int length1 = strlen(identifier1);
-	// char* dollar_identifier2 = "";
 	int length2 = strlen(identifier2);
 	int d = 0;
 	char* command_args1[2] = {myShell_command1, val1};
 	char* command_args2[2] = {myShell_command2, val2};
 
+	//get $identifier1 value
 	if(identifier1[0] == '$'){
 		//remove the "$" sign from input
     	for (int j = 0; j < length1; j++) {
@@ -389,13 +320,13 @@ int my_if(char* identifier1, char* op, char* identifier2, char* myShell_command1
 		identifier1 =  mem_get_value(identifier1);
 	}
 
+	//get $identifier2 value
 	if(identifier2[0] == '$'){
 		//remove the "$" sign from input
     	for (int j = 0; j < length2; j++) {
         	identifier2[j] = identifier2[j + 1];
     	}		
 		identifier2 =  mem_get_value(identifier2);
-		// printf("%s\n", identifier2);
 	}
 
 	if(strcmp(op, "==")==0){
