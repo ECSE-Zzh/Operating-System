@@ -83,24 +83,4 @@ char *mem_get_value(char *var_in) {
 
 }
 
-// char *mem_get_value(char *var_in) {
-// 	int i;
-// 	int length = strlen(var_in);
-// 	char var_in_buffer[1000] = "";
-
-// 	if(var_in[0] == '$'){
-//     	for (int j = 0; j < length; j++) {
-//         	var_in[j] = var_in[j + 1];
-//     	}
-// 	}
-
-// 	for (i=0; i<1000; i++){
-// 		if (strcmp(shellmemory[i].var, var_in) == 0){
-// 			return strdup(shellmemory[i].value);
-// 		} 
-// 	}
-
-// 	return strdup(" ");
-
-// }
 
