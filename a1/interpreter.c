@@ -173,7 +173,9 @@ int interpreter(char* command_args[], int args_size){
 
 	} else if (strcmp(command_args[0], "my_cat")==0) {
 		//my_cat
-		if(args_size != 2 || !isalnum(*command_args[1])) return badcommand();
+		if(args_size != 2) return badcommand();
+
+
 		// for(int j = 1; j < args_size; j++){
 		// 	strcat(file_content_buffer, command_args[j]);
 		// 	if(j < args_size - 1){
@@ -308,7 +310,7 @@ int my_touch(char* file_name){
 
 //my_cd: change the current directory to the specified directory
 int my_cd(char* dirname){
-	char cur_dirname[1024];
+	// char cur_dirname[1024];
 
 	fflush(stdout); // clears print statement buffer
 
@@ -346,7 +348,18 @@ int my_cat (char* file_name){
 	char file_content[1000] = "";
 
 	//check if file is opened successfully
-	if(myFile == NULL) return badCatCommand();
+	if(myFile == NULL){
+		// // printf("%s\n", "why here?");
+		// if(getcwd(cur_dirname, sizeof(cur_dirname)) != NULL){
+		// 	printf("%s\n", cur_dirname);
+		// 	return 0;
+		// } else {
+		// 	printf("%s\n", "failed to get current working directory");
+		// 	// return -1;
+		// }
+		// perror("fopen");
+		return badCatCommand();
+	} 
 	
 	//read file
 	while(fgets(file_content, sizeof(file_content), myFile) != NULL){
