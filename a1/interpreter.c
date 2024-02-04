@@ -94,18 +94,20 @@ int interpreter(char* command_args[], int args_size){
 		//set: takes at least 1 token and at most five tokens
 		if (args_size > 7 || args_size < 3) return badSetCommand();
 
+		//variable name can only be alphanumeric
+		if (!isalnum(*command_args[1])) return badSetCommand();
+
 		// concatenate char elements in one string
 		for(int j = 2; j < args_size; j++){
 
 			//set: only takes alphanumeric tokens
-			if(!isalnum(*command_args[j])) return badSetCommand();
+			if(!isalnum(*command_args[j])) return badSetCommand(); 
 
 			strcat(value_buffer, command_args[j]);
 			if(j < args_size - 1){
 				strcat(value_buffer, " ");
 			}
 		}	
-
 		return set(command_args[1], value_buffer);	
 	
 	} else if (strcmp(command_args[0], "print")==0) {
@@ -133,12 +135,12 @@ int interpreter(char* command_args[], int args_size){
 			if(!isalnum(*check_dollar)) return badcommand(); //var name can only be alphanumeric
 			
 			check_dollar =  mem_get_value(check_dollar);
+
 			return echo(check_dollar);
 		} 
 
 		//non-alphanumeric input (other than $) is not valid
 		if (!isalnum(*command_args[1])) return badcommand(); //take only one token string
-
 		return echo(command_args[1]);
 
 	} else if (strcmp(command_args[0], "my_ls")==0) {
@@ -148,32 +150,27 @@ int interpreter(char* command_args[], int args_size){
 
 	} else if (strcmp(command_args[0], "my_mkdir")==0) {
 		//my_mkdir: only take one alphanumeric input: directory name
-		if(args_size != 2 || !isalnum(*command_args[1])) return badcommand();
-		
+		if(args_size != 2) return badcommand();
 		return my_mkdir(command_args[1]);
 
 	} else if (strcmp(command_args[0], "my_touch")==0) {
 		//my_touch: only take one alphanumeric input: file name
-		if(args_size != 2 || !isalnum(*command_args[1])) return badcommand();
-
+		if(args_size != 2) return badcommand();
 		return my_touch(command_args[1]);
 
 	} else if (strcmp(command_args[0], "my_cd")==0) {
 		//my_cd: only take one input: directory
 		if(args_size != 2) return badCdCommand();
-
 		return my_cd(command_args[1]);
 
 	} else if (strcmp(command_args[0], "my_cat")==0) {
 		//my_cat: only take one input: file name
 		if(args_size != 2) return badCatCommand();
-
 		return my_cat(command_args[1]);
 
 	} else if (strcmp(command_args[0], "if")==0) {
 		if(args_size != 11)	return badIfCommand();	
 		if(strcmp(command_args[4], "then") != 0 || strcmp(command_args[7], "else") != 0 || strcmp(command_args[10], "fi") != 0){
-			// printf("%d\n%s\n%s\n%s\n", args_size, command_args[4], command_args[7], command_args[10]);
 			return badIfCommand();	
 		} 
 		return my_if(command_args[1], command_args[2], command_args[3], command_args[5], command_args[6], command_args[8], command_args[9]);
@@ -190,13 +187,17 @@ set VAR STRING		Assigns a value to shell memory\n \
 print VAR		Displays the STRING assigned to VAR\n \
 run SCRIPT.TXT		Executes the file SCRIPT.TXT\n ";
 	printf("%s\n", help_string);
+
 	fflush(stdout); // clears print statement buffer
+	
 	return 0;
 }
 
 int quit(){
 	printf("%s\n", "Bye!");
+
 	fflush(stdout); // clears print statement buffer
+
 	exit(0);
 }
 
@@ -209,7 +210,9 @@ int set(char* var, char* value){
 
 int print(char* var){
 	printf("%s\n", mem_get_value(var)); 
+
 	fflush(stdout); // clears print statement buffer
+
 	return 0;
 }
 
@@ -239,8 +242,8 @@ int run(char* script){
 }
 
 int echo(char* value){
-
 	printf("%s\n", value);
+
 	fflush(stdout); // clears print statement buffer
 
 	return 0;
@@ -250,6 +253,7 @@ int echo(char* value){
 int my_ls(){
 
 	fflush(stdout); // clears print statement buffer
+
     if (system("ls") == -1) {
         return -1;
     }
@@ -260,6 +264,7 @@ int my_ls(){
 int my_mkdir(char* dirname){
 
 	fflush(stdout); // clears print statement buffer
+
 	return mkdir(dirname, S_IRWXU);
 }
 
@@ -279,7 +284,9 @@ int my_touch(char* file_name){
 //my_cd: change the current directory to the specified directory
 int my_cd(char* dirname){
 	char cur_dirname[1024];
+
 	fflush(stdout); // clears print statement buffer
+
 	if(chdir(dirname) != 0)  return badCdCommand(); //directory name does not exist
 
 	return 0;
@@ -301,6 +308,7 @@ int my_cat (char* file_name){
 
 	//close file
 	fclose(myFile);
+
 	return 0;
 }
 
@@ -358,5 +366,6 @@ int my_if(char* identifier1, char* op, char* identifier2, char* myShell_command1
 	default:
 		break;
 	}
+
 	return 0;
 }
