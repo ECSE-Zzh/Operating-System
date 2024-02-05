@@ -1,3 +1,6 @@
+// Authors: Ziheng Zhou, Wasif Somji
+// Class: ECSE 427 - Operating Systems
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,6 +13,8 @@
 #include "shell.h"
 
 int MAX_ARGS_SIZE = 3;
+
+// Allocate commands for bad commands and error cases
 
 // For set command only
 int badSetCommand(){
@@ -241,6 +246,9 @@ int run(char* script){
 	return errCode;
 }
 
+/**
+ * echo: displays string passed as argument
+*/
 int echo(char* value){
 	printf("%s\n", value);
 
@@ -249,7 +257,9 @@ int echo(char* value){
 	return 0;
 }
 
-//my_ls: list all the files present in the current directory
+/**
+ * my_ls: lists all files present in the current directory
+*/
 int my_ls(){
 
 	fflush(stdout); // clears print statement buffer
@@ -261,6 +271,9 @@ int my_ls(){
     return 0;
 }
 
+/**
+ * my_mkdir: creates a new directory called dirname in the current directory
+*/
 int my_mkdir(char* dirname){
 
 	fflush(stdout); // clears print statement buffer
@@ -268,7 +281,9 @@ int my_mkdir(char* dirname){
 	return mkdir(dirname, S_IRWXU);
 }
 
-//my_touch: create a file with given file name in current directory
+/**
+ * my_touch: creates a file with given file name in current directory 
+*/
 int my_touch(char* file_name){
 
 	fflush(stdout); // clears print statement buffer
@@ -281,7 +296,9 @@ int my_touch(char* file_name){
 	return 0;
 }
 
-//my_cd: change the current directory to the specified directory
+/**
+ * my_cd: change the current directory to the specified directory
+*/
 int my_cd(char* dirname){
 	char cur_dirname[1024];
 
@@ -292,7 +309,9 @@ int my_cd(char* dirname){
 	return 0;
 }
 
-//my_cat: open file and read its content
+/**
+ * my_cat: open file and read its content
+*/
 int my_cat (char* file_name){
 	FILE *myFile = fopen(file_name, "r"); //open file
 	char file_content[1000] = "";
