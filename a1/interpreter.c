@@ -1,3 +1,6 @@
+// Authors: Ziheng Zhou, Wasif Somji
+// Class: ECSE 427 - Operating Systems
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -127,7 +130,7 @@ int interpreter(char* command_args[], int args_size){
 		//echo $var: get and print var value
 		check_dollar = command_args[1];
 		int length = strlen(check_dollar);
-		if(check_dollar[0] == '$'){
+		if(check_dollar[0] == '$'){ // if the first letter of the array is a $, then remove the sign and get the value to echo
 			//remove the "$" sign from input and get its value
     		for (int j = 0; j < length; j++) {
         		check_dollar[j] = check_dollar[j + 1];
@@ -241,6 +244,9 @@ int run(char* script){
 	return errCode;
 }
 
+/**
+ * echo: displays string passed as argument
+*/
 int echo(char* value){  
 
 	printf("%s\n", value); // echos value
@@ -248,8 +254,9 @@ int echo(char* value){
 
 	return 0;
 }
-
-//my_ls: list all the files present in the current directory
+/**
+ * my_ls: lists all files present in the current directory
+*/
 int my_ls(){
 
 	fflush(stdout); // clears print statement buffer
@@ -259,14 +266,18 @@ int my_ls(){
 
     return 0;
 }
-
+/**
+ * my_mkdir: creates a new directory called dirname in the current directory
+*/
 int my_mkdir(char* dirname){
 
 	fflush(stdout); // clears print statement buffer
 	return mkdir(dirname, S_IRWXU);
 }
 
-//my_touch: create a file with given file name in current directory
+/**
+ * my_touch: creates a file with given file name in current directory 
+*/
 int my_touch(char* file_name){
 
 	fflush(stdout); // clears print statement buffer
@@ -278,27 +289,30 @@ int my_touch(char* file_name){
 
 	return 0;
 }
-
-//my_cd: change the current directory to the specified directory
+/**
+ * my_cd: change the current directory to the specified directory
+*/
 int my_cd(char* dirname){
 	char cur_dirname[1024]; // allocates array
 	fflush(stdout); // clears print statement buffer
-	if(chdir(dirname) != 0)  return badCdCommand(); //directory name does not exist, use badcommand
+	if(chdir(dirname) != 0)  return badCdCommand(); //if the directory name does not exist, return error message
 
 	return 0;
 }
 
-//my_cat: open file and read its content
+/**
+ * my_cat: open file and read its content
+*/
 int my_cat (char* file_name){
 	FILE *myFile = fopen(file_name, "r"); //open file
 	char file_content[1000] = "";
 
-	// check if file is opened successfully, use badcommand
+	// check if file is opened successfully, use badcommand if the file doesn't exist
 	if(myFile == NULL) return badCatCommand(); 
 	
 	//while loop to read file
 	while(fgets(file_content, sizeof(file_content), myFile) != NULL){ // while contents are not null
-		printf("%s", file_content); // print content
+		printf("%s", file_content); // prints content of file
 		fflush(stdout); // clears print statement buffer
 	}
 
