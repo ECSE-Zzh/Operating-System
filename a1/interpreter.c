@@ -241,9 +241,9 @@ int run(char* script){
 	return errCode;
 }
 
-int echo(char* value){
+int echo(char* value){  
 
-	printf("%s\n", value);
+	printf("%s\n", value); // echos value
 	fflush(stdout); // clears print statement buffer
 
 	return 0;
@@ -254,7 +254,7 @@ int my_ls(){
 
 	fflush(stdout); // clears print statement buffer
     if (system("ls") == -1) {
-        return -1;
+        return -1; // returns system("ls")
     }
 
     return 0;
@@ -281,7 +281,7 @@ int my_touch(char* file_name){
 
 //my_cd: change the current directory to the specified directory
 int my_cd(char* dirname){
-	char cur_dirname[1024];
+	char cur_dirname[1024]; // allocates array
 	fflush(stdout); // clears print statement buffer
 	if(chdir(dirname) != 0)  return badCdCommand(); //directory name does not exist, use badcommand
 
@@ -296,9 +296,9 @@ int my_cat (char* file_name){
 	// check if file is opened successfully, use badcommand
 	if(myFile == NULL) return badCatCommand(); 
 	
-	//read file
-	while(fgets(file_content, sizeof(file_content), myFile) != NULL){
-		printf("%s", file_content);
+	//while loop to read file
+	while(fgets(file_content, sizeof(file_content), myFile) != NULL){ // while contents are not null
+		printf("%s", file_content); // print content
 		fflush(stdout); // clears print statement buffer
 	}
 
