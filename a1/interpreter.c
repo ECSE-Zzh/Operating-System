@@ -18,18 +18,21 @@ int badSetCommand(){
 	return 1;
 }
 
+// For if command
 int badIfCommand(){
 	printf("%s\n", "Empty if clause");
 	fflush(stdout); // clears print statement buffer
 	return 1;
 }
 
+// For my_cat bad cases
 int badCatCommand(){
 	printf("%s\n", "Bad command: my_cat");
 	fflush(stdout); // clears print statement buffer
 	return 1;
 }
 
+// For my_cd bad cases
 int badCdCommand(){
 	printf("%s\n", "Bad command: my_cd");
 	fflush(stdout); // clears print statement buffer
@@ -280,7 +283,7 @@ int my_touch(char* file_name){
 int my_cd(char* dirname){
 	char cur_dirname[1024];
 	fflush(stdout); // clears print statement buffer
-	if(chdir(dirname) != 0)  return badCdCommand(); //directory name does not exist
+	if(chdir(dirname) != 0)  return badCdCommand(); //directory name does not exist, use badcommand
 
 	return 0;
 }
@@ -290,7 +293,7 @@ int my_cat (char* file_name){
 	FILE *myFile = fopen(file_name, "r"); //open file
 	char file_content[1000] = "";
 
-	//check if file is opened successfully
+	// check if file is opened successfully, use badcommand
 	if(myFile == NULL) return badCatCommand(); 
 	
 	//read file
