@@ -124,9 +124,8 @@ int interpreter(char* command_args[], int args_size){
 		return run(command_args[1]);
 	
 	} else if (strcmp(command_args[0], "echo")==0) {
-		//echo
-
-		if(args_size != 2) return badcommand(); //echo only takes one alphanumeric string
+		//echo: only takes one alphanumeric string
+		if(args_size != 2) return badcommand(); 
 
 		//echo $var: get and print var value
 		check_dollar = command_args[1];
@@ -206,6 +205,11 @@ int quit(){
 	exit(0);
 }
 
+
+/**
+ * set: assigns a value to a variable (both passed as arguments) in shell memory 
+ * (if the variable already exists, its value will be overwritten). 
+ */
 int set(char* var, char* value){
 
 	mem_set_value(var, value);
@@ -290,7 +294,7 @@ int my_touch(char* file_name){
 
 	//Create a file if it doesn't exit
 	if(open(file_name, O_CREAT) == -1) {
-		return -1;
+		return 1;
 	}
 
 	return 0;
