@@ -269,7 +269,7 @@ int my_ls(){
 	fflush(stdout); // clears print statement buffer
 
     if (system("ls") == -1) {
-        return -1;
+        return 1;
     }
 
     return 0;
@@ -282,7 +282,9 @@ int my_mkdir(char* dirname){
 
 	fflush(stdout); // clears print statement buffer
 
-	return mkdir(dirname, S_IRWXU);
+	if(mkdir(dirname, S_IRWXU) == -1) return 1;
+	
+	return 0;
 }
 
 /**
