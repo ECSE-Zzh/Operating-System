@@ -1,7 +1,8 @@
 /**
  * Class: ECSE 427 - Operating Systems
- * Authors: Ziheng Zhou 260955157
- * 		    Wasif Somji 261003295
+ * Authors: 
+ * Ziheng Zhou 260955157
+ * Wasif Somji 261003295
 */
 
 #include <stdio.h>
@@ -178,7 +179,7 @@ int interpreter(char* command_args[], int args_size){
 		return my_cat(command_args[1]);
 
 	} else if (strcmp(command_args[0], "if")==0) {
-		if(args_size != 11)	return badIfCommand();	
+		if(args_size != 11) return badIfCommand();	
 		if(strcmp(command_args[4], "then") != 0 || strcmp(command_args[7], "else") != 0 || strcmp(command_args[10], "fi") != 0){
 			return badIfCommand();	
 		} 
