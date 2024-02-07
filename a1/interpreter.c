@@ -1,5 +1,8 @@
-// Authors: Ziheng Zhou, Wasif Somji
-// Class: ECSE 427 - Operating Systems
+/**
+ * Class: ECSE 427 - Operating Systems
+ * Authors: Ziheng Zhou 260955157
+ * 		    Wasif Somji 261003295
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -66,6 +69,7 @@ int my_touch(char* file_name);
 int my_cd(char* dirname);
 int my_cat(char* file_name);
 int my_if(char* identifier1, char* op, char* identifier2, char* myShell_command1, char* val1, char* myShell_command2, char* val2);
+int my_cp (char* source_dir, char* destination_dir);
 int badcommandFileDoesNotExist();
 
 // Interpret commands and their arguments
@@ -113,6 +117,7 @@ int interpreter(char* command_args[], int args_size){
 				strcat(value_buffer, " ");
 			}
 		}	
+
 		return set(command_args[1], value_buffer);	
 	
 	} else if (strcmp(command_args[0], "print")==0) {
@@ -178,6 +183,16 @@ int interpreter(char* command_args[], int args_size){
 			return badIfCommand();	
 		} 
 		return my_if(command_args[1], command_args[2], command_args[3], command_args[5], command_args[6], command_args[8], command_args[9]);
+
+	} else if (strcmp(command_args[0], "my_cp")==0) {
+		//my_cp command: my_cp source_file_name destination_dir
+		if(args_size != 3) return badCatCommand();
+
+		//copy file to destination directory with the same file name
+		strcat(command_args[2], "/");
+		strcat(command_args[2], command_args[1]);
+
+		return my_cp(command_args[1], command_args[2]);
 
 	} else return badcommand();
 }
@@ -391,6 +406,43 @@ int my_if(char* identifier1, char* op, char* identifier2, char* myShell_command1
 	default:
 		break;
 	}
+
+	return 0;
+}
+
+
+/**
+ * my_cp copies the contents of a source file in current working directory to the destination directory.
+ */
+int my_cp (char* source_dir, char* destination_dir){
+	char destination_file_buffer[4096] = "";
+	int byte_of_content = 0;
+
+	FILE *sourceFile = fopen(source_dir, "rb"); //open source file
+
+	//open source file failed
+	if(source_dir == NULL){
+		printf("%s\n", "cannot open source directory");
+		return 1;
+	}
+
+	FILE *destinationFile = fopen(destination_dir, "wb");//open destination file
+
+	//open destination file failed
+	if(destination_dir == NULL){
+		printf("%s\n", "cannot open destination directory");
+		fclose(sourceFile); //close the opened source file before returning error code
+		return 1;
+	}
+
+	//copy contents from source to destination byte by byte
+	while ((byte_of_content = fread(destination_file_buffer, sizeof(char), sizeof(destination_file_buffer), sourceFile)) > 0){
+		fwrite(destination_file_buffer, sizeof(char), byte_of_content, destinationFile);
+	} 
+
+	//close opened files
+	fclose(sourceFile);
+	fclose(destinationFile);
 
 	return 0;
 }

@@ -1,3 +1,9 @@
+/**
+ * Class: ECSE 427 - Operating Systems
+ * Authors: Ziheng Zhou 260955157
+ * 		    Wasif Somji 261003295
+*/
+
 #include<stdlib.h>
 #include<string.h>
 #include<stdio.h>
