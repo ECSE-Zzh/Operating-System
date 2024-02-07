@@ -360,19 +360,23 @@ int my_if(char* identifier1, char* op, char* identifier2, char* myShell_command1
 
 	//get $identifier1 value
 	if(identifier1[0] == '$'){
+
 		//remove the "$" sign from input
     	for (int j = 0; j < length1; j++) {
         	identifier1[j] = identifier1[j + 1];
     	}		
+		
 		identifier1 =  mem_get_value(identifier1);
 	}
 
 	//get $identifier2 value
 	if(identifier2[0] == '$'){
+
 		//remove the "$" sign from input
     	for (int j = 0; j < length2; j++) {
         	identifier2[j] = identifier2[j + 1];
     	}		
+
 		identifier2 =  mem_get_value(identifier2);
 	}
 
