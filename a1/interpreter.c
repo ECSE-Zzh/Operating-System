@@ -114,9 +114,7 @@ int interpreter(char* command_args[], int args_size){
 			if(!isalnum(*command_args[j])) return badSetCommand(); 
 
 			strcat(value_buffer, command_args[j]);
-			if(j < args_size - 1){
-				strcat(value_buffer, " ");
-			}
+			if(j < args_size - 1) strcat(value_buffer, " ");
 		}	
 
 		return set(command_args[1], value_buffer);	
