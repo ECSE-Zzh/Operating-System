@@ -8,8 +8,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": true,
-      "cwd": "d:/Study/Mcgill/Materials/9-U3Winter/ECSE427/Assignment/A1/A1_code/ECSE427/a1",
-      "program": "d:/Study/Mcgill/Materials/9-U3Winter/ECSE427/Assignment/A1/A1_code/ECSE427/a1/build/Debug/outDebug",
+      "cwd": "d:/Study/Mcgill/Materials/9-U3Winter/ECSE427/Assignment/A2/ECSE427/a2",
+      "program": "d:/Study/Mcgill/Materials/9-U3Winter/ECSE427/Assignment/A2/ECSE427/a2/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [

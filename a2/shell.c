@@ -2,6 +2,12 @@
 #include <stdlib.h>
 #include <string.h> 
 #include <unistd.h>
+
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <dirent.h>
+
 #include "interpreter.h"
 #include "shellmemory.h"
 #include "pcb.h"
@@ -24,6 +30,17 @@ int main(int argc, char *argv[]) {
 	
 	//init shell memory
 	mem_init();
+
+    // Create backing store directory
+    char *backing_store = "./backing_store";
+
+    if(opendir(backing_store) != NULL){
+        //Remove all contents in backing store directory if it exists
+        system("rm -rf ./backing_store/*");
+    } else {
+        //Create backing store directory if it does not exist
+        mkdir(backing_store, 0777);
+    }
 
 	while(1) {						
         if (isatty(fileno(stdin))) printf("%c ",prompt);
