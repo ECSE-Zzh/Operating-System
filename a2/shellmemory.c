@@ -164,7 +164,7 @@ int load_file(FILE* fp, int* pStart, int* pEnd, char* filename)
 		for (i; i < FRAME_STORE_SIZE; i+=3){
 			if(strcmp(shellmemory[i].var,"none") == 0){
 				*pStart = (int)i;
-				printf("%d\n", *pStart);
+				// printf("%d\n", *pStart);
 				hasSpaceLeft = true;
 				break;
 			}
