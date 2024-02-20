@@ -31,16 +31,11 @@ int main(int argc, char *argv[]) {
 	//init shell memory
 	mem_init();
 
-    // Create backing store directory
-    char *backing_store = "./backing_store";
+    //Remove all contents in backing store directory if it exists
+    system("rm -rf ./backing_store*");
 
-    if(opendir(backing_store) != NULL){
-        //Remove all contents in backing store directory if it exists
-        system("rm -rf ./backing_store/*");
-    } else {
-        //Create backing store directory if it does not exist
-        mkdir(backing_store, 0777);
-    }
+    //Create backing store directory if it does not exist
+    system("mkdir ./backing_store");
 
 	while(1) {						
         if (isatty(fileno(stdin))) printf("%c ",prompt);

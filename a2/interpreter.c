@@ -43,6 +43,7 @@ int my_ls();
 int my_mkdir(char* dirname);
 int my_touch(char* filename);
 int my_cd(char* dirname);
+int my_cp (char* source_dir, char* destination_dir);
 int exec(char *fname1, char *fname2, char *fname3); //, char* policy, bool background, bool mt);
 
 // Interpret commands and their arguments
@@ -134,7 +135,7 @@ int interpreter(char* command_args[], int args_size){
 			return exec(command_args[1],command_args[2],NULL); 
 		else if(args_size == 4)
 			return exec(command_args[1],command_args[2],command_args[3]);
-	}
+	} 
 	
 	return handle_error(BAD_COMMAND);
 }
@@ -156,7 +157,7 @@ int quit(){
 	ready_queue_destory();
 
 	//Delete backing_store before quit
-	system("rm -rf ./backing_store/");
+	system("rm -rf ./backing_store*");
 	
 	exit(0);
 }
@@ -241,10 +242,65 @@ int run(char* script){
 	return errCode;
 }
 
+int my_cp (char* source_dir, char* destination_dir){
+	char destination_file_buffer[4096] = "";
+	int byte_of_content = 0;
+
+	FILE *sourceFile = fopen(source_dir, "rb"); //open source file
+
+	//open source file failed
+	if(source_dir == NULL){
+		printf("%s\n", "cannot open source directory");
+		return 1;
+	}
+
+	FILE *destinationFile = fopen(destination_dir, "wb");//open destination file
+
+	//open destination file failed
+	if(destination_dir == NULL){
+		printf("%s\n", "cannot open destination directory");
+		fclose(sourceFile); //close the opened source file before returning error code
+		return 1;
+	}
+
+	//copy contents from source to destination byte by byte
+	while ((byte_of_content = fread(destination_file_buffer, sizeof(char), sizeof(destination_file_buffer), sourceFile)) > 0){
+		fwrite(destination_file_buffer, sizeof(char), byte_of_content, destinationFile);
+	} 
+
+	//close opened files
+	fclose(sourceFile);
+	fclose(destinationFile);
+
+	return 0;
+}
+
+
 int exec(char *fname1, char *fname2, char *fname3) {
 	int error_code = 0;
+	char* copyDestDir;
+	char* tempDestDirectory = "backing_store";
+	char* destDirectory = "/backing_store";
+	char* back_slash= "/";
+	char* currentDirectory;
+
 	if(fname1 != NULL){
+		//copy file
+		copyDestDir = (char*)malloc(1024);
+		strcpy(copyDestDir, tempDestDirectory);
+		strcat(copyDestDir, back_slash);
+		strcat(copyDestDir, fname1);
+		my_cp(fname1, copyDestDir);
+
+		//go to backing_store
+		currentDirectory =  (char*)malloc(1024);
+		getcwd(currentDirectory, 1024);
+		strcat(currentDirectory, destDirectory);
+		my_cd(currentDirectory); 
+		printf("%s\n", currentDirectory);
+		
         error_code = process_initialize(fname1);
+		free(currentDirectory);
 		if(error_code != 0){
 			return handle_error(error_code);
 		}
