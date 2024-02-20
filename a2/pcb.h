@@ -1,6 +1,16 @@
 #ifndef PCB_H
 #define PCB_H
 #include <stdbool.h>
+
+typedef struct PAGE PAGE;
+
+struct PAGE {
+    int index[3];
+    int valid_bit[3];
+    int page_index;
+    int page_pid;
+};
+
 /*
  * Struct:  PCB 
  * --------------------

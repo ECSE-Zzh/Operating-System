@@ -2,16 +2,23 @@
 #include<string.h>
 #include<stdio.h>
 #include<stdbool.h>
+#include "pcb.h"
 
 #define SHELL_MEM_LENGTH 1000
 
+#define FRAME_STORE_SIZE 600 //200*3
+#define VARIABLE_STORE_SIZE 400 //1000-600
 
+int helperEnd = 0;
+int helperStart = 0;
 struct memory_struct{
 	char *var;
 	char *value;
 };
 
 struct memory_struct shellmemory[SHELL_MEM_LENGTH];
+// struct memory_struct frame_store[FRAME_STORE_SIZE];
+// struct memory_struct variable_store[VARIABLE_STORE_SIZE];
 
 // Helper functions
 int match(char *model, char *var) {
@@ -35,6 +42,24 @@ char *extract(char *model) {
 	return strdup(value);
 }
 
+// Frame store functions
+
+// void frameStoreInit(){
+// 	for(int i = 0; i < FRAME_STORE_SIZE; i++){
+// 		frame_store[i].var = "none";
+// 		frame_store[i].value = "none";
+// 	}
+// }
+
+// // Set var and value pair of frame_store
+// void frameStoreSetValue(char *var_in, char *value_in){
+// 	for(int i = 0; i < FRAME_STORE_SIZE; i+=3){
+// 		if (strcmp(frame_store[i].var, var_in) == 0){
+// 			frame_store[i].value = strdup(value_in);
+// 			return;
+// 		}
+// 	}
+// }
 
 // Shell memory functions
 
@@ -46,10 +71,11 @@ void mem_init(){
 	}
 }
 
+
 // Set key value pair
 void mem_set_value(char *var_in, char *value_in) {
 	int i;
-	for (i=0; i<1000; i++){
+	for (i=FRAME_STORE_SIZE; i<1000; i++){
 		if (strcmp(shellmemory[i].var, var_in) == 0){
 			shellmemory[i].value = strdup(value_in);
 			return;
@@ -57,7 +83,7 @@ void mem_set_value(char *var_in, char *value_in) {
 	}
 
 	//Value does not exist, need to find a free spot.
-	for (i=0; i<1000; i++){
+	for (i=FRAME_STORE_SIZE; i<1000; i++){
 		if (strcmp(shellmemory[i].var, "none") == 0){
 			shellmemory[i].var = strdup(var_in);
 			shellmemory[i].value = strdup(value_in);
@@ -72,7 +98,7 @@ void mem_set_value(char *var_in, char *value_in) {
 //get value based on input key
 char *mem_get_value(char *var_in) {
 	int i;
-	for (i=0; i<1000; i++){
+	for (i=FRAME_STORE_SIZE; i<1000; i++){
 		if (strcmp(shellmemory[i].var, var_in) == 0){
 			return strdup(shellmemory[i].value);
 		} 
@@ -80,7 +106,6 @@ char *mem_get_value(char *var_in) {
 	return NULL;
 
 }
-
 
 void printShellMemory(){
 	int count_empty = 0;
@@ -115,29 +140,42 @@ void printShellMemory(){
  */
 int load_file(FILE* fp, int* pStart, int* pEnd, char* filename)
 {
+	printShellMemory();
+	// mem_init();
+	// printf("%s\n %d\n", "test a: ", strcmp(shellmemory[0].var,"none"));
+
 	char *line;
+	PCB pcb;
     size_t i;
     int error_code = 0;
 	bool hasSpaceLeft = false;
 	bool flag = true;
-	i=101;
+	// i=101;
+	i = 0;
 	size_t candidate;
+	int empty_line_per_page = 0;
+	// int pageNum = 0;
+	// int lineCount = 0;
+	// int count_empty = 0;
+	// int line_used = 0;
+
 	while(flag){
 		flag = false;
-		for (i; i < SHELL_MEM_LENGTH; i++){
+		for (i; i < FRAME_STORE_SIZE; i+=3){
 			if(strcmp(shellmemory[i].var,"none") == 0){
 				*pStart = (int)i;
+				printf("%d\n", *pStart);
 				hasSpaceLeft = true;
 				break;
 			}
 		}
 		candidate = i;
-		for(i; i < SHELL_MEM_LENGTH; i++){
-			if(strcmp(shellmemory[i].var,"none") != 0){
-				flag = true;
-				break;
-			}
-		}
+		// for(i; i < FRAME_STORE_SIZE; i+=3){
+		// 	if(strcmp(shellmemory[i].var,"none") != 0){
+		// 		flag = true;
+		// 		break;
+		// 	}
+		// }
 	}
 	i = candidate;
 	//shell memory is full
@@ -146,14 +184,31 @@ int load_file(FILE* fp, int* pStart, int* pEnd, char* filename)
 		return error_code;
 	}
     
-    for (size_t j = i; j < SHELL_MEM_LENGTH; j++){
+    for (size_t j = i; j < FRAME_STORE_SIZE; j++){
         if(feof(fp))
         {
-            *pEnd = (int)j-1;
+            *pEnd = (int)j-1;	
+			//Unused lines in current page should be left blank, and move to next page
+			if(j%3 != 0){
+				empty_line_per_page = 3 - (j%3); //j%3: lines used in an unfilled page, 3-j%3: #lines unused and should be skipped
+				for(int k = 0; k < empty_line_per_page; k++){
+					line = calloc(1, FRAME_STORE_SIZE);
+					// if (fgets(line, FRAME_STORE_SIZE, fp) == NULL)
+					// {
+					// 	continue;
+					// }
+					shellmemory[j+k].var = strdup(filename);
+					shellmemory[j+k].value = strndup(line, strlen(line));
+					free(line);		
+				}
+				// helperStart = j;
+				helperEnd = j-1+empty_line_per_page;
+				pcb.end = helperEnd;
+			}
             break;
         }else{
-			line = calloc(1, SHELL_MEM_LENGTH);
-			if (fgets(line, SHELL_MEM_LENGTH, fp) == NULL)
+			line = calloc(1, FRAME_STORE_SIZE);
+			if (fgets(line, FRAME_STORE_SIZE, fp) == NULL)
 			{
 				continue;
 			}
@@ -167,17 +222,15 @@ int load_file(FILE* fp, int* pStart, int* pEnd, char* filename)
 	if(!feof(fp)){
 		error_code = 21;
 		//clean up the file in memory
-		for(int j = 1; i <= SHELL_MEM_LENGTH; i ++){
+		for(int j = 1; i <= FRAME_STORE_SIZE; i ++){
 			shellmemory[j].var = "none";
 			shellmemory[j].value = "none";
     	}
 		return error_code;
 	}
-	//printShellMemory();
+	printShellMemory();
     return error_code;
 }
-
-
 
 char * mem_get_value_at_line(int index){
 	if(index<0 || index > SHELL_MEM_LENGTH) return NULL; 
@@ -185,6 +238,7 @@ char * mem_get_value_at_line(int index){
 }
 
 void mem_free_lines_between(int start, int end){
+	// printf("%s\n %d\n", "test b: ", strcmp(shellmemory[0].var,"none"));
 	for (int i=start; i<=end && i<SHELL_MEM_LENGTH; i++){
 		if(shellmemory[i].var != NULL){
 			free(shellmemory[i].var);
