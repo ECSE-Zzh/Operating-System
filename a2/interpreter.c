@@ -333,7 +333,6 @@ int exec(char *fname1, char *fname2, char *fname3) {
 		//go back to parent directory of backing_store to delete it when 'quit'
 		my_cd("..");
 
-        error_code = process_initialize(fname2);
 		if(error_code != 0){
 			return handle_error(error_code);
 		}
@@ -357,8 +356,7 @@ int exec(char *fname1, char *fname2, char *fname3) {
 
 		//go back to parent directory of backing_store to delete it when 'quit'
 		my_cd("..");
-
-        error_code = process_initialize(fname3);
+		
 		if(error_code != 0){
 			return handle_error(error_code);
 		}
