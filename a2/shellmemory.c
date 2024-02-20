@@ -140,7 +140,7 @@ void printShellMemory(){
  */
 int load_file(FILE* fp, int* pStart, int* pEnd, char* filename)
 {
-	printShellMemory();
+	// printShellMemory();
 	// mem_init();
 	// printf("%s\n %d\n", "test a: ", strcmp(shellmemory[0].var,"none"));
 
@@ -202,8 +202,12 @@ int load_file(FILE* fp, int* pStart, int* pEnd, char* filename)
 					free(line);		
 				}
 				// helperStart = j;
+				
+				//I think *pEnd is the problem, so I here tried to use the end of a page instead of the end of the file
+				//so that I can remove everything from previous process instead of only removing lines with instructions
+				//but it didn't work :(
 				helperEnd = j-1+empty_line_per_page;
-				pcb.end = helperEnd;
+				pcb.end = helperEnd; 
 			}
             break;
         }else{
