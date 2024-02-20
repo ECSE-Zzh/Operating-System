@@ -66,7 +66,7 @@ int interpreter(char* command_args[], int args_size){
 	else if (strcmp(command_args[0], "quit") == 0 || strcmp(command_args[0], "exit") == 0)
 	{ // quit
 		if (args_size > 1) return handle_error(TOO_MANY_TOKENS);
-		// TODO
+
 		return quit();
 	}
 	else if (strcmp(command_args[0], "set")==0)
@@ -157,7 +157,12 @@ int quit(){
 	ready_queue_destory();
 
 	//Delete backing_store before quit
-	system("rm -rf ./backing_store*");
+    int errCode = system("rm -rf ./backing_store");
+
+    if (errCode != 0) {
+        perror("Error deleting backing_store");
+        return errCode;
+    }
 	
 	exit(0);
 }
@@ -297,21 +302,62 @@ int exec(char *fname1, char *fname2, char *fname3) {
 		getcwd(currentDirectory, 1024);
 		strcat(currentDirectory, destDirectory);
 		my_cd(currentDirectory); 
-		printf("%s\n", currentDirectory);
 		
         error_code = process_initialize(fname1);
 		free(currentDirectory);
+
+		//go back to parent directory of backing_store to delete it when 'quit'
+		my_cd("..");
+
 		if(error_code != 0){
 			return handle_error(error_code);
 		}
     }
     if(fname2 != NULL){
+		//copy file
+		copyDestDir = (char*)malloc(1024);
+		strcpy(copyDestDir, tempDestDirectory);
+		strcat(copyDestDir, back_slash);
+		strcat(copyDestDir, fname2);
+		my_cp(fname2, copyDestDir);
+
+		//go to backing_store
+		currentDirectory =  (char*)malloc(1024);
+		getcwd(currentDirectory, 1024);
+		strcat(currentDirectory, destDirectory);
+		my_cd(currentDirectory); 
+		
+        error_code = process_initialize(fname2);
+		free(currentDirectory);
+
+		//go back to parent directory of backing_store to delete it when 'quit'
+		my_cd("..");
+
         error_code = process_initialize(fname2);
 		if(error_code != 0){
 			return handle_error(error_code);
 		}
     }
     if(fname3 != NULL){
+		//copy file
+		copyDestDir = (char*)malloc(1024);
+		strcpy(copyDestDir, tempDestDirectory);
+		strcat(copyDestDir, back_slash);
+		strcat(copyDestDir, fname3);
+		my_cp(fname3, copyDestDir);
+
+		//go to backing_store
+		currentDirectory =  (char*)malloc(1024);
+		getcwd(currentDirectory, 1024);
+		strcat(currentDirectory, destDirectory);
+		my_cd(currentDirectory); 
+		
+        error_code = process_initialize(fname3);
+		free(currentDirectory);
+
+		//go back to parent directory of backing_store to delete it when 'quit'
+		my_cd("..");
+
         error_code = process_initialize(fname3);
 		if(error_code != 0){
 			return handle_error(error_code);
