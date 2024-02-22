@@ -9,8 +9,6 @@
 #define FRAME_STORE_SIZE 600 //200*3
 #define VARIABLE_STORE_SIZE 400 //1000-600
 
-int page_end = 0;
-
 struct memory_struct{
 	char *var;
 	char *value;
@@ -125,11 +123,8 @@ int load_file(FILE* fp, int* pStart, int* pEnd, char* filename)
 	bool flag = true;
 	i = 0;
 	size_t candidate;
-	int empty_line_per_page = 0;
-	int tempEnd = 0;
 	int lineCount = 0;
 	int fileLineCount = 0;
-	page_end = 0;
 
 	while(flag){
 		flag = false;
@@ -151,21 +146,16 @@ int load_file(FILE* fp, int* pStart, int* pEnd, char* filename)
 	}
     
     for (size_t j = i; j < FRAME_STORE_SIZE; j++){		
-		printf("%s %d\n", "file line: ", fileLineCount);
         if(feof(fp))
         {
-            *pEnd = (int)fileLineCount-1;
-			tempEnd = (int)lineCount-1;
+            *pEnd = (int)fileLineCount-1 + (int)candidate;
 			//Unused lines in current page should be left blank, and move to next page
 			while(lineCount % 3 != 0){
-				// empty_line_per_page = 3 - (lineCount % 3); //#empty lines in current page
 				lineCount++;
-				// page_end = (int)tempEnd + (int)empty_line_per_page;
 			} 
             break;
         }else{
 			line = calloc(1, FRAME_STORE_SIZE);
-			printf("%s\n", "hi");
 			if (fgets(line, FRAME_STORE_SIZE, fp) == NULL)
 			{
 				lineCount++;
@@ -190,7 +180,6 @@ int load_file(FILE* fp, int* pStart, int* pEnd, char* filename)
     	}
 		return error_code;
 	}
-	// lineCount = 0;
     return error_code;
 }
 
@@ -200,9 +189,9 @@ char * mem_get_value_at_line(int index){
 }
 
 void mem_free_lines_between(int start, int end){
-	printShellMemory();
-	printf("%s %d %s %d\n","start: ", start, "end: ", end);
-	
+	// printShellMemory();
+	// printf("%s %d %s %d\n","start: ", start, "end: ", end);
+
 	for (int i=start; i<=end && i<SHELL_MEM_LENGTH; i++){
 		if(shellmemory[i].var != NULL){
 			free(shellmemory[i].var);
