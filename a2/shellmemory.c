@@ -150,13 +150,13 @@ int load_file(FILE* fp, int* pStart, int* pEnd, char* filename)
 	}
     
     for (size_t j = i; j < FRAME_STORE_SIZE; j++){		
-		printf("%s %d  %s %d\n", "line count: ",lineCount, "j here: ",j);
+		// printf("%s %d  %s %d\n", "line count: ",lineCount, "j here: ",j);
 
         if(feof(fp))
         {
             *pEnd = (int)lineCount-1;
 			tempEnd = (int)lineCount-1;
-			printf("%s %d\n", "line count at file end: ",lineCount);
+			// printf("%s %d\n", "line count at file end: ",lineCount);
 
 			//Unused lines in current page should be left blank, and move to next page
 			if(lineCount % 3 != 0){
@@ -174,9 +174,9 @@ int load_file(FILE* fp, int* pStart, int* pEnd, char* filename)
 			line = calloc(1, FRAME_STORE_SIZE);
 			if (fgets(line, FRAME_STORE_SIZE, fp) == NULL)
 			{
-				printf("%s %d\n", "j shoud NOT be here!!", j);
-				shellmemory[j].var = "why";
-            	shellmemory[j].value = "why?";
+				// printf("%s %d\n", "j shoud NOT be here!!", j);
+				// shellmemory[j].var = "why";
+            	// shellmemory[j].value = "why?";
 				lineCount++;
 				continue;
 			}
@@ -207,10 +207,10 @@ char * mem_get_value_at_line(int index){
 }
 
 void mem_free_lines_between(int start, int end){
-	printShellMemory();
+	// printShellMemory();
 
 	for (int i=start; i<=end && i<SHELL_MEM_LENGTH; i++){
-		printf("%s %d %s %d\n","start: ", start, "end: ", end);
+		// printf("%s %d %s %d\n","start: ", start, "end: ", end);
 		if(shellmemory[i].var != NULL){
 			free(shellmemory[i].var);
 		}	
