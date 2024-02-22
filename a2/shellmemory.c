@@ -9,16 +9,14 @@
 #define FRAME_STORE_SIZE 600 //200*3
 #define VARIABLE_STORE_SIZE 400 //1000-600
 
-int helperEnd = 0;
-int helperStart = 0;
+int page_end = 0;
+
 struct memory_struct{
 	char *var;
 	char *value;
 };
 
 struct memory_struct shellmemory[SHELL_MEM_LENGTH];
-// struct memory_struct frame_store[FRAME_STORE_SIZE];
-// struct memory_struct variable_store[VARIABLE_STORE_SIZE];
 
 // Helper functions
 int match(char *model, char *var) {
@@ -42,27 +40,7 @@ char *extract(char *model) {
 	return strdup(value);
 }
 
-// Frame store functions
-
-// void frameStoreInit(){
-// 	for(int i = 0; i < FRAME_STORE_SIZE; i++){
-// 		frame_store[i].var = "none";
-// 		frame_store[i].value = "none";
-// 	}
-// }
-
-// // Set var and value pair of frame_store
-// void frameStoreSetValue(char *var_in, char *value_in){
-// 	for(int i = 0; i < FRAME_STORE_SIZE; i+=3){
-// 		if (strcmp(frame_store[i].var, var_in) == 0){
-// 			frame_store[i].value = strdup(value_in);
-// 			return;
-// 		}
-// 	}
-// }
-
 // Shell memory functions
-
 void mem_init(){
 	int i;
 	for (i=0; i<1000; i++){		
@@ -120,7 +98,6 @@ void printShellMemory(){
 	printf("\n\t%d lines in total, %d lines in use, %d lines free\n\n", SHELL_MEM_LENGTH, SHELL_MEM_LENGTH-count_empty, count_empty);
 }
 
-
 /*
  * Function:  addFileToMem 
  * 	Added in A2
@@ -140,42 +117,30 @@ void printShellMemory(){
  */
 int load_file(FILE* fp, int* pStart, int* pEnd, char* filename)
 {
-	// printShellMemory();
-	// mem_init();
-	// printf("%s\n %d\n", "test a: ", strcmp(shellmemory[0].var,"none"));
-
 	char *line;
 	PCB pcb;
     size_t i;
     int error_code = 0;
 	bool hasSpaceLeft = false;
 	bool flag = true;
-	// i=101;
 	i = 0;
 	size_t candidate;
 	int empty_line_per_page = 0;
-	// int pageNum = 0;
-	// int lineCount = 0;
-	// int count_empty = 0;
-	// int line_used = 0;
+	int tempEnd = 0;
+	int lineCount = 0;
+	page_end = 0;
 
 	while(flag){
 		flag = false;
 		for (i; i < FRAME_STORE_SIZE; i+=3){
 			if(strcmp(shellmemory[i].var,"none") == 0){
 				*pStart = (int)i;
-				// printf("%d\n", *pStart);
 				hasSpaceLeft = true;
 				break;
 			}
 		}
 		candidate = i;
-		// for(i; i < FRAME_STORE_SIZE; i+=3){
-		// 	if(strcmp(shellmemory[i].var,"none") != 0){
-		// 		flag = true;
-		// 		break;
-		// 	}
-		// }
+
 	}
 	i = candidate;
 	//shell memory is full
@@ -184,41 +149,41 @@ int load_file(FILE* fp, int* pStart, int* pEnd, char* filename)
 		return error_code;
 	}
     
-    for (size_t j = i; j < FRAME_STORE_SIZE; j++){
+    for (size_t j = i; j < FRAME_STORE_SIZE; j++){		
+		printf("%s %d  %s %d\n", "line count: ",lineCount, "j here: ",j);
+
         if(feof(fp))
         {
-            *pEnd = (int)j-1;	
+            *pEnd = (int)lineCount-1;
+			tempEnd = (int)lineCount-1;
+			printf("%s %d\n", "line count at file end: ",lineCount);
+
 			//Unused lines in current page should be left blank, and move to next page
-			if(j%3 != 0){
-				empty_line_per_page = 3 - (j%3); //j%3: lines used in an unfilled page, 3-j%3: #lines unused and should be skipped
+			if(lineCount % 3 != 0){
+				empty_line_per_page = 3 - (lineCount % 3); //lineCount % 3: #empty lines in current page
+				page_end = (int)tempEnd + (int)empty_line_per_page;
 				for(int k = 0; k < empty_line_per_page; k++){
 					line = calloc(1, FRAME_STORE_SIZE);
-					// if (fgets(line, FRAME_STORE_SIZE, fp) == NULL)
-					// {
-					// 	continue;
-					// }
-					shellmemory[j+k].var = strdup(filename);
-					shellmemory[j+k].value = strndup(line, strlen(line));
-					free(line);		
+					shellmemory[tempEnd+k].var = "nothing";
+					shellmemory[tempEnd+k].value = "nothing";
+					free(line);			
 				}
-				// helperStart = j;
-				
-				//I think *pEnd is the problem, so I here tried to use the end of a page instead of the end of the file
-				//so that I can remove everything from previous process instead of only removing lines with instructions
-				//but it didn't work :(
-				helperEnd = j-1+empty_line_per_page;
-				pcb.end = helperEnd; 
-			}
+			} 
             break;
         }else{
 			line = calloc(1, FRAME_STORE_SIZE);
 			if (fgets(line, FRAME_STORE_SIZE, fp) == NULL)
 			{
+				printf("%s %d\n", "j shoud NOT be here!!", j);
+				shellmemory[j].var = "why";
+            	shellmemory[j].value = "why?";
+				lineCount++;
 				continue;
 			}
 			shellmemory[j].var = strdup(filename);
             shellmemory[j].value = strndup(line, strlen(line));
 			free(line);
+			lineCount++;
         }
     }
 
@@ -232,7 +197,7 @@ int load_file(FILE* fp, int* pStart, int* pEnd, char* filename)
     	}
 		return error_code;
 	}
-	printShellMemory();
+	lineCount = 0;
     return error_code;
 }
 
@@ -242,8 +207,10 @@ char * mem_get_value_at_line(int index){
 }
 
 void mem_free_lines_between(int start, int end){
-	// printf("%s\n %d\n", "test b: ", strcmp(shellmemory[0].var,"none"));
+	printShellMemory();
+
 	for (int i=start; i<=end && i<SHELL_MEM_LENGTH; i++){
+		printf("%s %d %s %d\n","start: ", start, "end: ", end);
 		if(shellmemory[i].var != NULL){
 			free(shellmemory[i].var);
 		}	

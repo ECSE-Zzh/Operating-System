@@ -43,7 +43,7 @@ int my_ls();
 int my_mkdir(char* dirname);
 int my_touch(char* filename);
 int my_cd(char* dirname);
-int my_cp (char* source_dir, char* destination_dir);
+int my_cp (char* source_dir, char *filename, char* destination_dir);
 int exec(char *fname1, char *fname2, char *fname3); //, char* policy, bool background, bool mt);
 
 // Interpret commands and their arguments
@@ -55,6 +55,7 @@ int interpreter(char* command_args[], int args_size){
 
 	for (int i=0; i<args_size; i++)
 	{ // strip spaces, newline, etc.
+		// printf("%s", command_args[i]);
 		command_args[i][strcspn(command_args[i], "\r\n")] = 0;
 	}
 
@@ -233,7 +234,6 @@ int my_cd(char* dirname){
 	return handle_error(ERROR_CD);
 }
 
-
 int run(char* script){
 	//errCode 11: bad command file does not exist
 	int errCode = 0;
@@ -247,56 +247,32 @@ int run(char* script){
 	return errCode;
 }
 
-int my_cp (char* source_dir, char* destination_dir){
-	char destination_file_buffer[4096] = "";
-	int byte_of_content = 0;
+int my_cp (char* source_dir, char *filename, char* destination_dir){
+	int source_dir_namelen = strlen(source_dir);
+	int file_namelen = strlen(filename);
+	int blank_len = strlen(" ");
+	int dest_dir_namelen = strlen(destination_dir);
 
-	FILE *sourceFile = fopen(source_dir, "rb"); //open source file
-
-	//open source file failed
-	if(source_dir == NULL){
-		printf("%s\n", "cannot open source directory");
-		return 1;
-	}
-
-	FILE *destinationFile = fopen(destination_dir, "wb");//open destination file
-
-	//open destination file failed
-	if(destination_dir == NULL){
-		printf("%s\n", "cannot open destination directory");
-		fclose(sourceFile); //close the opened source file before returning error code
-		return 1;
-	}
-
-	//copy contents from source to destination byte by byte
-	while ((byte_of_content = fread(destination_file_buffer, sizeof(char), sizeof(destination_file_buffer), sourceFile)) > 0){
-		fwrite(destination_file_buffer, sizeof(char), byte_of_content, destinationFile);
-	} 
-
-	//close opened files
-	fclose(sourceFile);
-	fclose(destinationFile);
-
-	return 0;
+	char* command = (char*) calloc(1, 4 + source_dir_namelen + file_namelen + blank_len + dest_dir_namelen); 
+	strncat(command, "cp ", 4);
+	strncat(command, source_dir, source_dir_namelen);
+	strncat(command, filename, file_namelen);
+	strncat(command, " ", blank_len);
+	strncat(command, destination_dir, dest_dir_namelen);
+	int errCode = system(command);
+	free(command);
+	return errCode;
 }
-
 
 int exec(char *fname1, char *fname2, char *fname3) {
 	int error_code = 0;
-	char* copyDestDir;
 	char* tempDestDirectory = "backing_store";
 	char* destDirectory = "/backing_store";
-	char* back_slash= "/";
 	char* currentDirectory;
 
 	if(fname1 != NULL){
 		//copy file
-		copyDestDir = (char*)malloc(1024);
-		strcpy(copyDestDir, tempDestDirectory);
-		strcat(copyDestDir, back_slash);
-		strcat(copyDestDir, fname1);
-		my_cp(fname1, copyDestDir);
-
+		my_cp("./", fname1, tempDestDirectory);
 		//go to backing_store
 		currentDirectory =  (char*)malloc(1024);
 		getcwd(currentDirectory, 1024);
@@ -315,11 +291,7 @@ int exec(char *fname1, char *fname2, char *fname3) {
     }
     if(fname2 != NULL){
 		//copy file
-		copyDestDir = (char*)malloc(1024);
-		strcpy(copyDestDir, tempDestDirectory);
-		strcat(copyDestDir, back_slash);
-		strcat(copyDestDir, fname2);
-		my_cp(fname2, copyDestDir);
+		my_cp("./", fname2, tempDestDirectory);
 
 		//go to backing_store
 		currentDirectory =  (char*)malloc(1024);
@@ -339,11 +311,7 @@ int exec(char *fname1, char *fname2, char *fname3) {
     }
     if(fname3 != NULL){
 		//copy file
-		copyDestDir = (char*)malloc(1024);
-		strcpy(copyDestDir, tempDestDirectory);
-		strcat(copyDestDir, back_slash);
-		strcat(copyDestDir, fname3);
-		my_cp(fname3, copyDestDir);
+		my_cp("./", fname3, tempDestDirectory);
 
 		//go to backing_store
 		currentDirectory =  (char*)malloc(1024);
@@ -356,7 +324,7 @@ int exec(char *fname1, char *fname2, char *fname3) {
 
 		//go back to parent directory of backing_store to delete it when 'quit'
 		my_cd("..");
-		
+
 		if(error_code != 0){
 			return handle_error(error_code);
 		}
