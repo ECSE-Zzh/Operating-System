@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <stdbool.h>
+#include <time.h>
 
 #include "shellmemory.h"
 #include "shell.h"
@@ -137,6 +138,10 @@ int interpreter(char* command_args[], int args_size){
 		else if(args_size == 4)
 			return exec(command_args[1],command_args[2],command_args[3]);
 	} 
+	else if(strcmp(command_args[0], "resetmem") == 0){
+		if(args_size > 1) return handle_error(TOO_MANY_TOKENS);
+		return resetmem();
+	}
 	
 	return handle_error(BAD_COMMAND);
 }
@@ -248,38 +253,60 @@ int run(char* script){
 }
 
 int my_cp (char* source_dir, char *filename, char* destination_dir){
+	//copy file to backing_store
 	int source_dir_namelen = strlen(source_dir);
 	int file_namelen = strlen(filename);
 	int blank_len = strlen(" ");
 	int dest_dir_namelen = strlen(destination_dir);
 
-	char* command = (char*) calloc(1, 4 + source_dir_namelen + file_namelen + blank_len + dest_dir_namelen); 
+	//formulate correct path and cp command
+	char* command = (char*) calloc(1, 2048); 
 	strncat(command, "cp ", 4);
 	strncat(command, source_dir, source_dir_namelen);
 	strncat(command, filename, file_namelen);
 	strncat(command, " ", blank_len);
 	strncat(command, destination_dir, dest_dir_namelen);
 	int errCode = system(command);
+	printf("%s\n", command);
 	free(command);
 	return errCode;
 }
 
 int exec(char *fname1, char *fname2, char *fname3) {
 	int error_code = 0;
-	char* tempDestDirectory = "backing_store";
+	char* tempDestDirectory = "backing_store/";
 	char* destDirectory = "/backing_store";
 	char* currentDirectory;
+	char* tempFName_time;
+	char nameBuffer[100];
+	char timeStamp[1000];
+	time_t time_create;
 
 	if(fname1 != NULL){
-		//copy file
-		my_cp("./", fname1, tempDestDirectory);
+		//set unique create time
+		time_create = time(NULL);
+		sprintf(timeStamp, "%d", time);
+		tempFName_time = timeStamp; //copy current time for future use
+
+		//formulate correct destination directory (with fname + create_time)
+		strcpy(nameBuffer, tempDestDirectory);
+		strcat(nameBuffer, fname1);
+		strcat(nameBuffer, timeStamp);
+
+		my_cp("", fname1, nameBuffer);//copy
+
 		//go to backing_store
 		currentDirectory =  (char*)malloc(1024);
 		getcwd(currentDirectory, 1024);
 		strcat(currentDirectory, destDirectory);
 		my_cd(currentDirectory); 
-		
-        error_code = process_initialize(fname1);
+
+		//clear nameBuffer, pass correct fname into process_init
+		nameBuffer[0] = '\0'; 
+		strcpy(nameBuffer, fname1);
+		strcat(nameBuffer, tempFName_time);
+
+        error_code = process_initialize(nameBuffer);
 		free(currentDirectory);
 
 		//go back to parent directory of backing_store to delete it when 'quit'
@@ -292,7 +319,6 @@ int exec(char *fname1, char *fname2, char *fname3) {
     if(fname2 != NULL){
 		//copy file
 		my_cp("./", fname2, tempDestDirectory);
-
 		//go to backing_store
 		currentDirectory =  (char*)malloc(1024);
 		getcwd(currentDirectory, 1024);

@@ -47,6 +47,13 @@ void mem_init(){
 	}
 }
 
+int resetmem(){
+	for(int i = FRAME_STORE_SIZE; i<SHELL_MEM_LENGTH; i++){
+		shellmemory[i].var = "none";
+		shellmemory[i].value = "none";
+	}
+	return 0;
+}
 
 // Set key value pair
 void mem_set_value(char *var_in, char *value_in) {
@@ -115,60 +122,57 @@ void printShellMemory(){
  */
 int load_file(FILE* fp, int* pStart, int* pEnd, char* filename)
 {
-	char *line;
-	PCB pcb;
     size_t i;
     int error_code = 0;
 	bool hasSpaceLeft = false;
-	bool flag = true;
+	bool first = true;
 	i = 0;
 	size_t candidate;
 	int lineCount = 0;
 	int fileLineCount = 0;
+	char line[100];
 
-	while(flag){
-		flag = false;
+	while(true){
+		//find the first available frame
 		for (i; i < FRAME_STORE_SIZE; i+=3){
 			if(strcmp(shellmemory[i].var,"none") == 0){
-				*pStart = (int)i;
+				if (first) {
+					*pStart = i;
+					first = false;
+				}
 				hasSpaceLeft = true;
 				break;
 			}
 		}
-		candidate = i;
+		candidate = i; //next free frame number
 
-	}
-	i = candidate;
-	//shell memory is full
-	if(hasSpaceLeft == 0){
-		error_code = 21;
-		return error_code;
-	}
-    
-    for (size_t j = i; j < FRAME_STORE_SIZE; j++){		
-        if(feof(fp))
-        {
-            *pEnd = (int)fileLineCount-1 + (int)candidate;
-			//Unused lines in current page should be left blank, and move to next page
-			while(lineCount % 3 != 0){
-				lineCount++;
-			} 
-            break;
-        }else{
-			line = calloc(1, FRAME_STORE_SIZE);
-			if (fgets(line, FRAME_STORE_SIZE, fp) == NULL)
+		//shell memory is full
+		if(hasSpaceLeft == 0){
+			error_code = 21;
+			return error_code;
+		}
+		//load file line by line until e.o.f.
+		if(feof(fp)) {
+			break;
+		}
+		for (size_t j = i; j < i+3; j++){		
+			// line = calloc(1, FRAME_STORE_SIZE);
+			if (fgets(line, sizeof(line), fp) == NULL)
 			{
-				lineCount++;
+				shellmemory[j].var = strdup(filename);
+				shellmemory[j].value = '\0';
 				fileLineCount++;
 				continue;
 			}
 			shellmemory[j].var = strdup(filename);
-            shellmemory[j].value = strndup(line, strlen(line));
-			free(line);
-			lineCount++;
+			shellmemory[j].value = strndup(line, strlen(line));
 			fileLineCount++;
-        }
-    }
+			*pEnd = (int)fileLineCount%3+(int)candidate-1;
+			if (fileLineCount%3 == 0 && fileLineCount>0) *pEnd = *pEnd + 3;
+			//printf("end = %d, flc = %d, candidate = %d\n", *pEnd, fileLineCount, candidate);
+		}
+	}
+    
 
 	//no space left to load the entire file into shell memory
 	if(!feof(fp)){
@@ -189,8 +193,7 @@ char * mem_get_value_at_line(int index){
 }
 
 void mem_free_lines_between(int start, int end){
-	// printShellMemory();
-	// printf("%s %d %s %d\n","start: ", start, "end: ", end);
+
 
 	for (int i=start; i<=end && i<SHELL_MEM_LENGTH; i++){
 		if(shellmemory[i].var != NULL){

@@ -29,6 +29,8 @@ int process_initialize(char *filename){
         fclose(fp);
         return FILE_ERROR;
     }
+
+    //enqueue process pcb into job queue
     PCB* newPCB = makePCB(*start,*end);
     QueueNode *node = malloc(sizeof(QueueNode));
     node->pcb = newPCB;
