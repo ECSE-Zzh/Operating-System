@@ -267,7 +267,6 @@ int my_cp (char* source_dir, char *filename, char* destination_dir){
 	strncat(command, " ", blank_len);
 	strncat(command, destination_dir, dest_dir_namelen);
 	int errCode = system(command);
-	printf("%s\n", command);
 	free(command);
 	return errCode;
 }
@@ -277,21 +276,21 @@ int exec(char *fname1, char *fname2, char *fname3) {
 	char* tempDestDirectory = "backing_store/";
 	char* destDirectory = "/backing_store";
 	char* currentDirectory;
-	char* tempFName_time;
-	char nameBuffer[100];
-	char timeStamp[1000];
-	time_t time_create;
+	char randCharBuffer[100];
+	char nameBuffer[1000];
 
 	if(fname1 != NULL){
-		//set unique create time
-		time_create = time(NULL);
-		sprintf(timeStamp, "%d", time);
-		tempFName_time = timeStamp; //copy current time for future use
+		//clear nameBuffer
+		nameBuffer[0] = '\0'; 
+		randCharBuffer[0] = '\0';
 
-		//formulate correct destination directory (with fname + create_time)
+		//set unique number, convert it to a random char
+		sprintf(randCharBuffer, "%c", rand());
+
+		//formulate correct destination directory (fname + randomChar)
 		strcpy(nameBuffer, tempDestDirectory);
 		strcat(nameBuffer, fname1);
-		strcat(nameBuffer, timeStamp);
+		strncat(nameBuffer, randCharBuffer, sizeof(randCharBuffer));
 
 		my_cp("", fname1, nameBuffer);//copy
 
@@ -304,7 +303,7 @@ int exec(char *fname1, char *fname2, char *fname3) {
 		//clear nameBuffer, pass correct fname into process_init
 		nameBuffer[0] = '\0'; 
 		strcpy(nameBuffer, fname1);
-		strcat(nameBuffer, tempFName_time);
+		strncat(nameBuffer, randCharBuffer, sizeof(randCharBuffer));
 
         error_code = process_initialize(nameBuffer);
 		free(currentDirectory);
@@ -317,15 +316,32 @@ int exec(char *fname1, char *fname2, char *fname3) {
 		}
     }
     if(fname2 != NULL){
-		//copy file
-		my_cp("./", fname2, tempDestDirectory);
+		//clear nameBuffer
+		nameBuffer[0] = '\0'; 
+		randCharBuffer[0] = '\0';
+
+		//set unique number, convert it to a random char
+		sprintf(randCharBuffer, "%c", rand());
+
+		//formulate correct destination directory (fname + randomChar)
+		strcpy(nameBuffer, tempDestDirectory);
+		strcat(nameBuffer, fname2);
+		strncat(nameBuffer, randCharBuffer, sizeof(randCharBuffer));
+
+		my_cp("", fname2, nameBuffer);//copy
+
 		//go to backing_store
 		currentDirectory =  (char*)malloc(1024);
 		getcwd(currentDirectory, 1024);
 		strcat(currentDirectory, destDirectory);
 		my_cd(currentDirectory); 
-		
-        error_code = process_initialize(fname2);
+
+		//clear nameBuffer, pass correct fname into process_init
+		nameBuffer[0] = '\0'; 
+		strcpy(nameBuffer, fname2);
+		strncat(nameBuffer, randCharBuffer, sizeof(randCharBuffer));
+
+        error_code = process_initialize(nameBuffer);
 		free(currentDirectory);
 
 		//go back to parent directory of backing_store to delete it when 'quit'
@@ -336,16 +352,32 @@ int exec(char *fname1, char *fname2, char *fname3) {
 		}
     }
     if(fname3 != NULL){
-		//copy file
-		my_cp("./", fname3, tempDestDirectory);
+		//clear nameBuffer
+		nameBuffer[0] = '\0'; 
+		randCharBuffer[0] = '\0';
+
+		//set unique number, convert it to a random char
+		sprintf(randCharBuffer, "%c", rand());
+
+		//formulate correct destination directory (fname + randomChar)
+		strcpy(nameBuffer, tempDestDirectory);
+		strcat(nameBuffer, fname3);
+		strncat(nameBuffer, randCharBuffer, sizeof(randCharBuffer));
+
+		my_cp("", fname3, nameBuffer);//copy
 
 		//go to backing_store
 		currentDirectory =  (char*)malloc(1024);
 		getcwd(currentDirectory, 1024);
 		strcat(currentDirectory, destDirectory);
 		my_cd(currentDirectory); 
-		
-        error_code = process_initialize(fname3);
+
+		//clear nameBuffer, pass correct fname into process_init
+		nameBuffer[0] = '\0'; 
+		strcpy(nameBuffer, fname3);
+		strncat(nameBuffer, randCharBuffer, sizeof(randCharBuffer));
+
+        error_code = process_initialize(nameBuffer);
 		free(currentDirectory);
 
 		//go back to parent directory of backing_store to delete it when 'quit'

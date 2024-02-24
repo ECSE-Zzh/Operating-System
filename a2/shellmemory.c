@@ -173,7 +173,6 @@ int load_file(FILE* fp, int* pStart, int* pEnd, char* filename)
 		}
 	}
     
-
 	//no space left to load the entire file into shell memory
 	if(!feof(fp)){
 		error_code = 21;
@@ -193,8 +192,6 @@ char * mem_get_value_at_line(int index){
 }
 
 void mem_free_lines_between(int start, int end){
-
-
 	for (int i=start; i<=end && i<SHELL_MEM_LENGTH; i++){
 		if(shellmemory[i].var != NULL){
 			free(shellmemory[i].var);
