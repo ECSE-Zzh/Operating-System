@@ -285,7 +285,7 @@ int exec(char *fname1, char *fname2, char *fname3) {
 		randCharBuffer[0] = '\0';
 
 		//set unique number, convert it to a random char
-		sprintf(randCharBuffer, "%c", rand());
+		sprintf(randCharBuffer, "%d", rand());
 
 		//formulate correct destination directory (fname + randomChar)
 		strcpy(nameBuffer, tempDestDirectory);
@@ -321,7 +321,7 @@ int exec(char *fname1, char *fname2, char *fname3) {
 		randCharBuffer[0] = '\0';
 
 		//set unique number, convert it to a random char
-		sprintf(randCharBuffer, "%c", rand());
+		sprintf(randCharBuffer, "%d", rand());
 
 		//formulate correct destination directory (fname + randomChar)
 		strcpy(nameBuffer, tempDestDirectory);
@@ -357,7 +357,7 @@ int exec(char *fname1, char *fname2, char *fname3) {
 		randCharBuffer[0] = '\0';
 
 		//set unique number, convert it to a random char
-		sprintf(randCharBuffer, "%c", rand());
+		sprintf(randCharBuffer, "%d", rand());
 
 		//formulate correct destination directory (fname + randomChar)
 		strcpy(nameBuffer, tempDestDirectory);
