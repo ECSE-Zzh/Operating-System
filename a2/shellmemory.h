@@ -8,9 +8,6 @@
 #include "interpreter.h"
 #include "pcb.h"
 
-#ifndef SHELLMEMORY_H
-#define SHELLMEMORY_H
-
 #ifndef FRAME_STORE_SIZE
 	#define FRAME_STORE_SIZE 600//200*3
 #endif
@@ -20,6 +17,9 @@
 #endif
 
 #define SHELL_MEM_LENGTH (FRAME_STORE_SIZE + VARIABLE_STORE_SIZE)
+
+#ifndef SHELLMEMORY_H
+#define SHELLMEMORY_H
 
 void mem_init();
 char *mem_get_value(char *var);
