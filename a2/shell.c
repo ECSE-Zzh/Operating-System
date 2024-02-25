@@ -7,7 +7,7 @@ int parseInput(char ui[]);
 int main(int argc, char *argv[])
 {
     printf("%s\n", "Shell v2.0");
-    printf("Frame store size  = %d; Variable store size = %d\n", FRAME_STORE_SIZE, VARIABLE_STORE_SIZE);
+    printf("Frame Store Size  = %d; Variable Store Size = %d\n", FRAME_STORE_SIZE, VARIABLE_STORE_SIZE);
 
     char prompt = '$';              // Shell prompt
     char userInput[MAX_USER_INPUT]; // user's input stored here
