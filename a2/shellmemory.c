@@ -187,6 +187,16 @@ int pick_rand_victim(){
 	// save victim name for updating its page table
 	strcpy(victim_name_buffer, shellmemory[victim].var);
 
+	// update page table, search corresponding PCB based on victim file name
+	if(findPCB(&pcb, victim_name_buffer)){
+		for(int i = 0; i < PAGE_TABLE_SIZE; i++){
+			if(candidate == pcb->PAGE_TABLE[i]){
+				pcb->PAGE_TABLE[i]=-1;
+				break;
+			}
+		}
+	}
+
 	//evict three lines starting from victim (physical address)
 	while(line_to_replace){
 		//if value is none, skip this line
@@ -195,7 +205,6 @@ int pick_rand_victim(){
 			strcmp(shellmemory[victim].value, "none") == 0) {
 			victim++;
 			line_to_replace--;
-			
 			continue;
 		}
 		//print the evicted line and reset its variable name and value to none
@@ -207,15 +216,7 @@ int pick_rand_victim(){
 	}
 	printf("%s\n", "End of victim page contents.");
 	
-	//update page table, search corresponding PCB based on victim file name
-	if(findPCB(&pcb, victim_name_buffer)){
-		for(int i = 0; i < PAGE_TABLE_SIZE; i++){
-			if(candidate == pcb->PAGE_TABLE[i]){
-				pcb->PAGE_TABLE[i]=-1;
-				break;
-			}
-		}
-	}
+	
 	return candidate;
 }
 

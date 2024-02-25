@@ -243,13 +243,19 @@ int my_cd(char* dirname){
 int run(char* script){
 	//errCode 11: bad command file does not exist
 	int errCode = 0;
+	char nameBuffer[1000];
+
 	//load script into shell
-	errCode = process_initialize(script);
+	strcpy(nameBuffer, formulateFileName(script));
+	errCode = process_initialize(nameBuffer);
+
+	my_cd("..");
+
 	if(errCode == 11){
 		return handle_error(errCode);
 	}
 	//run with FCFS
-	schedule_by_policy("FCFS"); //, false);
+	errCode = schedule_by_policy("FCFS"); //, false);
 	return errCode;
 }
 
@@ -310,16 +316,14 @@ char* formulateFileName(char *fname){
 
 int exec(char *fname1, char *fname2, char *fname3) {
 	int error_code = 0;
-	char nameBuffer1[1000];
-	char nameBuffer2[1000];
-	char nameBuffer3[1000];
+	char nameBuffer[1000];
 
 	if(fname1 != NULL){
 		//clear nameBuffer
-		nameBuffer1[0] = '\0'; 
+		nameBuffer[0] = '\0'; 
 
-		strcpy(nameBuffer1, formulateFileName(fname1));
-        error_code = process_initialize(nameBuffer1);
+		strcpy(nameBuffer, formulateFileName(fname1));
+        error_code = process_initialize(nameBuffer);
 
 		//go back to parent directory of backing_store to delete it when 'quit'
 		my_cd("..");
@@ -330,10 +334,10 @@ int exec(char *fname1, char *fname2, char *fname3) {
     }
     if(fname2 != NULL){
 		//clear nameBuffer
-		nameBuffer2[0] = '\0'; 
+		nameBuffer[0] = '\0'; 
 
-		strcpy(nameBuffer2, formulateFileName(fname2));
-        error_code = process_initialize(nameBuffer2);
+		strcpy(nameBuffer, formulateFileName(fname2));
+        error_code = process_initialize(nameBuffer);
 
 		//go back to parent directory of backing_store to delete it when 'quit'
 		my_cd("..");
@@ -344,10 +348,10 @@ int exec(char *fname1, char *fname2, char *fname3) {
     }
     if(fname3 != NULL){
 		//clear nameBuffer
-		nameBuffer3[0] = '\0'; 
+		nameBuffer[0] = '\0'; 
 
-		strcpy(nameBuffer3, formulateFileName(fname3));
-        error_code = process_initialize(nameBuffer3);
+		strcpy(nameBuffer, formulateFileName(fname3));
+        error_code = process_initialize(nameBuffer);
 
 		//go back to parent directory of backing_store to delete it when 'quit'
 		my_cd("..");
