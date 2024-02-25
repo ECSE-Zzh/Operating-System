@@ -1,17 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <dirent.h>
-
-#include "interpreter.h"
-#include "shellmemory.h"
-#include "pcb.h"
-#include "kernel.h"
 #include "shell.h"
 
 int MAX_USER_INPUT = 1000;
