@@ -4,20 +4,49 @@
 #include <stdio.h>
 #include "pcb.h"
 
+#define PCB_STORE_SIZE 3
+
 int pid_counter = 1;
+PCB pcb_store[PCB_STORE_SIZE];
 
 int generatePID(){
     return pid_counter++;
 }
 
+void initPCBStore(){
+    //init PCB.pid at the beginning of execution
+    for (int i = 0; i < PCB_STORE_SIZE; i++){
+        pcb_store[i].pid = 0;
+    }
+}
+
+int findUnusedPCB(){
+    for(int i = 0; i < PCB_STORE_SIZE; i++){
+        if(pcb_store[i].pid == 0){
+            return i;
+        }
+    }
+    return -1;
+}
+
+bool findPCB(PCB** pcb, char* filename){
+    // find pcb based on file name
+    for(int i = 0; i < PCB_STORE_SIZE; i++){
+        if(strcmp(filename, pcb_store[i].file_name)==0){
+            *pcb = &pcb_store[i];
+            return true;
+        }
+    }
+    return false;
+}
+
 //In this implementation, Pid is the same as file ID 
-PCB* makePCB(int start, int end){
-    PCB * newPCB = malloc(sizeof(PCB));
+PCB* makePCB(char* filename){
+    int index = findUnusedPCB();
+    PCB * newPCB = &pcb_store[index];
     newPCB->pid = generatePID();
-    newPCB->PC = start;
-    newPCB->start  = start;
-    newPCB->end = end;
-    newPCB->job_length_score = 1+end-start;
+    newPCB->PC = 0;
     newPCB->priority = false;
+    strcpy(newPCB->file_name, filename);
     return newPCB;
 }

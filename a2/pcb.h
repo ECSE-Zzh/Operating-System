@@ -2,6 +2,7 @@
 #define PCB_H
 #include <stdbool.h>
 
+#define PAGE_TABLE_SIZE 100
 // typedef struct{
 //     int page_entries;
 //     int line_index[3];
@@ -25,10 +26,12 @@ typedef struct
     int start;
     int end;
     int job_length_score;
-    int* PAGE_TABLE;
-    char* file_name;
+    int PAGE_TABLE[PAGE_TABLE_SIZE];
+    char file_name[100];
 }PCB;
 
 int generatePID();
-PCB * makePCB(int start, int end);
+PCB * makePCB(char* filename);
+void initPCBStore();
+bool findPCB(PCB** pcb, char* filename);
 #endif

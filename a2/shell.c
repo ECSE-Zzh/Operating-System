@@ -20,6 +20,9 @@ int main(int argc, char *argv[])
     // init shell memory
     mem_init();
 
+    // init PCB store
+    initPCBStore();
+    
     // Remove all contents in backing store directory if it exists
     system("rm -rf ./backing_store*");
 

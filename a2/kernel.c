@@ -21,27 +21,27 @@ int process_initialize(char *filename){
     FILE* fp;
     int* start = (int*)malloc(sizeof(int));
     int* end = (int*)malloc(sizeof(int));
-    int* page_table = (int *)malloc(sizeof(int)*PAGE_TABLE_SIZE);
 
     //initialize all page table value = -1
+    PCB* newPCB = makePCB(filename);
     for(int i = 0; i < PAGE_TABLE_SIZE; i++){
-        page_table[i] = -1;
+        newPCB->PAGE_TABLE[i] = -1;
     }
 
     fp = fopen(filename, "rt");//open file in backing store
     if(fp == NULL){
 		return FILE_DOES_NOT_EXIST;
     }
-    int error_code = load_file(fp, start, end, filename, page_table, 2);
+    int error_code = load_file(fp, end, filename, newPCB->PAGE_TABLE, 2);
     if(error_code != 0){
         fclose(fp);
         return FILE_ERROR;
     }
 
     //enqueue process pcb into job queue
-    PCB* newPCB = makePCB(*start,*end);
-    newPCB -> PAGE_TABLE = page_table;
-    newPCB -> file_name = filename;
+    newPCB->start = 0;
+    newPCB->end = *end;
+    newPCB->job_length_score = 1+*end;
 
     QueueNode *node = malloc(sizeof(QueueNode));
     node->pcb = newPCB;
@@ -57,20 +57,24 @@ int shell_process_initialize(){
     //So we know that the input is a file, we can directly load the file into ram
     int* start = (int*)malloc(sizeof(int));
     int* end = (int*)malloc(sizeof(int));
-    int page_table[PAGE_TABLE_SIZE];
 
     //initialize all page table value = -1
+    PCB* newPCB = makePCB("_SHELL");
     for(int i = 0; i < PAGE_TABLE_SIZE; i++){
-        page_table[i] = -1;
+        newPCB->PAGE_TABLE[i] = -1;
     }
 
     int error_code = 0;
-    error_code = load_file(stdin, start, end, "_SHELL", page_table, 2);
+    error_code = load_file(stdin, end, "_SHELL", newPCB->PAGE_TABLE, 2);
     if(error_code != 0){
         return error_code;
     }
-    PCB* newPCB = makePCB(*start,*end);
+
+    newPCB->start = 0;
+    newPCB->end = *end;
+    newPCB->job_length_score = 1+*end;
     newPCB->priority = true;
+
     QueueNode *node = malloc(sizeof(QueueNode));
     node->pcb = newPCB;
 

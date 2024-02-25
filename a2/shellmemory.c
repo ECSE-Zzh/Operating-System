@@ -111,7 +111,7 @@ void printShellMemory(){
  * 
  * returns: error code, 21: no space left
  */
-int load_file(FILE* fp, int* pStart, int* pEnd, char* filename, int* page_table, int page_allowed_load)
+int load_file(FILE* fp, int* pEnd, char* filename, int* page_table, int page_allowed_load)
 {
     int i;
     int error_code = 0;
@@ -121,9 +121,6 @@ int load_file(FILE* fp, int* pStart, int* pEnd, char* filename, int* page_table,
 	int lineCount = 0;
 	int fileLineCount = 0;
 	char line[100];
-	PCB pcb;
-
-	*pStart = 0;
 	
 	//get file size before loading
 	while(fgets(line, sizeof(line), fp) != NULL){
@@ -144,21 +141,20 @@ int load_file(FILE* fp, int* pStart, int* pEnd, char* filename, int* page_table,
 		}
 		candidate = i/3; //next free frame number
 
-		//shell memory is full
-		if(hasSpaceLeft == 0){
-			printf("%s\n", "no space left");
-			error_code = 21;
-			return error_code;
-		}
-		//load file line by line, if end of file reached terminate
+		// shell memory is full
+		if(!hasSpaceLeft) candidate = pick_rand_victim();
+
+		// end of file reached
 		if(feof(fp)) {
 			break;
 		}
-		
-		page_table[lineCount/3] = candidate; //store frame number into page table
 
-		for (int j = i; j < i+3; j++){		
-			// line = calloc(1, FRAME_STORE_SIZE);
+		//store frame number into page table
+		page_table[lineCount/3] = candidate; 
+
+		//load file line by line starting from candidate*3 (convert to physical memory)
+		//if end of file reached terminate
+		for (int j = candidate*3; j < candidate*3+3; j++){
 			if (fgets(line, sizeof(line), fp) == NULL)
 			{
 				shellmemory[j].var = strdup(filename);
@@ -169,11 +165,58 @@ int load_file(FILE* fp, int* pStart, int* pEnd, char* filename, int* page_table,
 			shellmemory[j].value = strndup(line, strlen(line));
 			lineCount++;
 		}
+		hasSpaceLeft = false;		//recheck hasSpaceLeft in the next iteration
 	}
-
-	// *pEnd = fileLineCount-1;
     
     return error_code;
+}
+
+int pick_rand_victim(){
+	//pick a random number within the range of frame store size
+	int victim = 0;
+	int line_to_replace = 3;
+	int candidate;
+	PCB* pcb;
+	char victim_name_buffer[100]; 
+
+	// victim is a physical address (shellmemory)
+	victim = 3*(rand() % (FRAME_STORE_SIZE/3));
+	candidate = victim/3; // candidate: next free frame number
+
+	printf("%s\n", "Page fault! Victim page contents:");
+	// save victim name for updating its page table
+	strcpy(victim_name_buffer, shellmemory[victim].var);
+
+	//evict three lines starting from victim (physical address)
+	while(line_to_replace){
+		//if value is none, skip this line
+		if (shellmemory[victim].value == NULL || 
+			shellmemory[victim].value[0] == '\0' ||
+			strcmp(shellmemory[victim].value, "none") == 0) {
+			victim++;
+			line_to_replace--;
+			
+			continue;
+		}
+		//print the evicted line and reset its variable name and value to none
+		printf("%s", shellmemory[victim].value);
+		shellmemory[victim].var = "none";
+		shellmemory[victim].value = "none";
+		victim++;
+		line_to_replace--;
+	}
+	printf("%s\n", "End of victim page contents.");
+	
+	//update page table, search corresponding PCB based on victim file name
+	if(findPCB(&pcb, victim_name_buffer)){
+		for(int i = 0; i < PAGE_TABLE_SIZE; i++){
+			if(candidate == pcb->PAGE_TABLE[i]){
+				pcb->PAGE_TABLE[i]=-1;
+				break;
+			}
+		}
+	}
+	return candidate;
 }
 
 void handlePageFault(PCB* pcb){
@@ -186,8 +229,7 @@ void handlePageFault(PCB* pcb){
 	char lineBuffer[100];
 
 	int hasSpaceLeft = 0;
-	int victim_page = 0;
-	
+
 	//if find first free frame spot in shellmemory
 	for (int i = 0; i < FRAME_STORE_SIZE; i+=3){
 		if(strcmp(shellmemory[i].var,"none") == 0){
@@ -197,20 +239,9 @@ void handlePageFault(PCB* pcb){
 		}
 	}
 
-	//if no space left, kick out a random frame
-	if(hasSpaceLeft == 0){
-		victim_page = 3*(rand() % (FRAME_STORE_SIZE/3));//pick a random number within the range of frame store size
-		candidate = victim_page/3;
-		printf("victim page= %d\n", victim_page);
 
-		printf("%s\n", "Page fault! Victim page contents:");
-		while(lines_to_load){
-			printf("%s\n", shellmemory[victim_page].value);		
-			victim_page++;
-			lines_to_load--;
-		}
-		printf("%s\n", "End of victim page contents.");
-	}
+	//if no space left, kick out a frame
+	if(hasSpaceLeft == 0) candidate = pick_rand_victim();
 
 	//update page table
 	//index=page number, page table[index]=frame number
@@ -230,7 +261,7 @@ void handlePageFault(PCB* pcb){
 		}
 		fgets(lineBuffer, sizeof(lineBuffer), fp); 
 		if (i >= pcb->PC) {
-			shellmemory[candidate*3+(i - pcb->PC)].var = strdup(pcb -> file_name);
+			shellmemory[candidate*3+(i - pcb->PC)].var = strdup(pcb->file_name);
 			shellmemory[candidate*3+(i - pcb->PC)].value = strndup(lineBuffer, strlen(lineBuffer));
 			lines_to_load--;
 		}
