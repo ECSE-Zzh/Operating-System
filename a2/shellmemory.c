@@ -184,14 +184,34 @@ void handlePageFault(PCB* pcb){
 	char* currentDirectory;
 	int lines_to_load = 3;
 	char lineBuffer[100];
+
+	int hasSpaceLeft = 0;
+	int victim_page = 0;
 	
 	//if find first free frame spot in shellmemory
 	for (int i = 0; i < FRAME_STORE_SIZE; i+=3){
 		if(strcmp(shellmemory[i].var,"none") == 0){
 			candidate = i/3; //next frame number address
+			hasSpaceLeft = 1;
 			break;
 		}
 	}
+
+	//if no space left, kick out a random frame
+	if(hasSpaceLeft == 0){
+		victim_page = 3*(rand() % (FRAME_STORE_SIZE/3));//pick a random number within the range of frame store size
+		candidate = victim_page/3;
+		printf("victim page= %d\n", victim_page);
+
+		printf("%s\n", "Page fault! Victim page contents:");
+		while(lines_to_load){
+			printf("%s\n", shellmemory[victim_page].value);		
+			victim_page++;
+			lines_to_load--;
+		}
+		printf("%s\n", "End of victim page contents.");
+	}
+
 	//update page table
 	//index=page number, page table[index]=frame number
 	pcb->PAGE_TABLE[pcb->PC/3]=candidate; 
