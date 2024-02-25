@@ -2,14 +2,11 @@
 #define PCB_H
 #include <stdbool.h>
 
-typedef struct PAGE PAGE;
-
-struct PAGE {
-    int index[3];
-    int valid_bit[3];
-    int page_index;
-    int page_pid;
-};
+// typedef struct{
+//     int page_entries;
+//     int line_index[3];
+//     // int valid_bit[3];
+// }PAGE_TABLE;
 
 /*
  * Struct:  PCB 
@@ -28,6 +25,8 @@ typedef struct
     int start;
     int end;
     int job_length_score;
+    int* PAGE_TABLE;
+    char* file_name;
 }PCB;
 
 int generatePID();

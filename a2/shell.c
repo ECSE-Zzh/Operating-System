@@ -20,6 +20,7 @@ int parseInput(char ui[]);
 int main(int argc, char *argv[])
 {
     printf("%s\n", "Shell v2.0\n");
+    printf("Frame store size  = %d; Variable store size = %d\n", FRAME_STORE_SIZE, VARIABLE_STORE_SIZE);
 
     char prompt = '$';              // Shell prompt
     char userInput[MAX_USER_INPUT]; // user's input stored here
@@ -40,8 +41,9 @@ int main(int argc, char *argv[])
 
     while (1)
     {
-        if (isatty(fileno(stdin)))
+        if (isatty(fileno(stdin))){
             printf("%c ", prompt);
+        }
 
         char *str = fgets(userInput, MAX_USER_INPUT - 1, stdin);
         if (feof(stdin))

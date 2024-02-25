@@ -11,6 +11,8 @@
 #include "ready_queue.h"
 #include "interpreter.h"
 
+#define PAGE_TABLE_SIZE 100
+
 bool active = false;
 bool debug = false;
 bool in_background = false;
@@ -19,12 +21,18 @@ int process_initialize(char *filename){
     FILE* fp;
     int* start = (int*)malloc(sizeof(int));
     int* end = (int*)malloc(sizeof(int));
-    
-    fp = fopen(filename, "rt");
+    int* page_table = (int *)malloc(sizeof(int)*PAGE_TABLE_SIZE);
+
+    //initialize all page table value = -1
+    for(int i = 0; i < PAGE_TABLE_SIZE; i++){
+        page_table[i] = -1;
+    }
+
+    fp = fopen(filename, "rt");//open file in backing store
     if(fp == NULL){
 		return FILE_DOES_NOT_EXIST;
     }
-    int error_code = load_file(fp, start, end, filename);
+    int error_code = load_file(fp, start, end, filename, page_table, 2);
     if(error_code != 0){
         fclose(fp);
         return FILE_ERROR;
@@ -32,6 +40,9 @@ int process_initialize(char *filename){
 
     //enqueue process pcb into job queue
     PCB* newPCB = makePCB(*start,*end);
+    newPCB -> PAGE_TABLE = page_table;
+    newPCB -> file_name = filename;
+
     QueueNode *node = malloc(sizeof(QueueNode));
     node->pcb = newPCB;
 
@@ -46,8 +57,15 @@ int shell_process_initialize(){
     //So we know that the input is a file, we can directly load the file into ram
     int* start = (int*)malloc(sizeof(int));
     int* end = (int*)malloc(sizeof(int));
+    int page_table[PAGE_TABLE_SIZE];
+
+    //initialize all page table value = -1
+    for(int i = 0; i < PAGE_TABLE_SIZE; i++){
+        page_table[i] = -1;
+    }
+
     int error_code = 0;
-    error_code = load_file(stdin, start, end, "_SHELL");
+    error_code = load_file(stdin, start, end, "_SHELL", page_table, 2);
     if(error_code != 0){
         return error_code;
     }
@@ -62,16 +80,40 @@ int shell_process_initialize(){
     return 0;
 }
 
+int transPC(int PC, int* page_table){
+    //translate PC to physical memory address
+    int pageNumber, frameNumber, physical_addr;
+
+    pageNumber = PC/3;
+    frameNumber = page_table[pageNumber];
+
+    if (frameNumber < 0) return -1;
+    physical_addr = frameNumber * 3 + PC % 3;
+
+    return physical_addr; // add offset, PC % 3 is offset
+}
+
 bool execute_process(QueueNode *node, int quanta){
     char *line = NULL;
     PCB *pcb = node->pcb;
     for(int i=0; i<quanta; i++){
-        line = mem_get_value_at_line(pcb->PC++);
+    int physical_addr;
+
+        // line = mem_get_value_at_line(pcb->PC++); 
+        physical_addr = transPC(pcb->PC, pcb->PAGE_TABLE);
+        if(physical_addr < 0) {
+            //page fault
+            handlePageFault(pcb);
+            return false;
+        }
+        pcb->PC++;
+        line = mem_get_value_at_line(physical_addr);//physical address
+
         in_background = true;
         if(pcb->priority) {
             pcb->priority = false;
         }
-        if(pcb->PC>pcb->end){
+        if(pcb->PC > pcb->end){
             parseInput(line);
             terminate_process(node);
             in_background = false;

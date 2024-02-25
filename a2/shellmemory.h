@@ -1,12 +1,35 @@
+#include<stdlib.h>
+#include<string.h>
+#include<stdio.h>
+#include<stdbool.h>
+#include <unistd.h>
+#include <sys/stat.h>
+
+#include "interpreter.h"
+#include "pcb.h"
+
 #ifndef SHELLMEMORY_H
 #define SHELLMEMORY_H
+
+#ifndef FRAME_STORE_SIZE
+	#define FRAME_STORE_SIZE 600//200*3
+#endif
+
+#ifndef VARIABLE_STORE_SIZE
+	#define VARIABLE_STORE_SIZE 400//1000-600
+#endif
+
+#define SHELL_MEM_LENGTH (FRAME_STORE_SIZE + VARIABLE_STORE_SIZE)
+
 void mem_init();
 char *mem_get_value(char *var);
+
 void mem_set_value(char *var, char *value);
-int load_file(FILE* fp, int* pStart, int* pEnd, char* fileID);
+int load_file(FILE* fp, int* pStart, int* pEnd, char* fileID, int* page_table, int page_allowed_load);
 char * mem_get_value_at_line(int index);
 void mem_free_lines_between(int start, int end);
 void printShellMemory();
 
 int resetmem();
+void handlePageFault(PCB* pcb);
 #endif

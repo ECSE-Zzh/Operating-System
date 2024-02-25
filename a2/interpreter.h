@@ -2,6 +2,7 @@
 #define INTERPRETER_H
 
 int interpreter(char* command_args[], int args_size);
+int my_cd(char* dirname);
 int help();
 
 enum Error {
