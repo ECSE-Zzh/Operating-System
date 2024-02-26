@@ -133,6 +133,10 @@ int load_file(FILE* fp, int* pEnd, char* filename, int* page_table, int page_all
 
 	//load the number of pages allowed
 	while(page_allowed_load--){
+		// end of file reached
+		if(feof(fp)) {
+			break;
+		}
 		//find the first available frame
 		i = 0;
 		for (i; i < FRAME_STORE_SIZE; i+=3){
@@ -145,11 +149,6 @@ int load_file(FILE* fp, int* pEnd, char* filename, int* page_table, int page_all
 
 		// shell memory is full
 		if(!hasSpaceLeft) candidate = pick_victim();
-
-		// end of file reached
-		if(feof(fp)) {
-			break;
-		}
 
 		//store frame number into page table
 		page_table[lineCount/3] = candidate; 
@@ -212,7 +211,6 @@ int pick_victim(){
 	int candidate;
 	PCB* pcb;
 	char victim_name_buffer[100]; 
-
 
 	// victim is a physical address (shellmemory)
 	victim = 3*findLRU();
