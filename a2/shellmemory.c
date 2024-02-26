@@ -5,7 +5,8 @@ struct memory_struct{
 };
 
 struct memory_struct shellmemory[SHELL_MEM_LENGTH];
-
+int time_log[FRAME_STORE_SIZE/3]; // each frame has its corresponding time stamp
+int time = 0;
 
 // Helper functions
 int match(char *model, char *var) {
@@ -31,10 +32,11 @@ char *extract(char *model) {
 
 // Shell memory functions
 void mem_init(){
-	int i;
+	int i; //physical address
 	for (i=0; i<SHELL_MEM_LENGTH; i++){		
 		shellmemory[i].var = "none";
 		shellmemory[i].value = "none";
+		if (i < FRAME_STORE_SIZE) updateTimeLog(i/3);
 	}
 }
 
@@ -142,7 +144,7 @@ int load_file(FILE* fp, int* pEnd, char* filename, int* page_table, int page_all
 		candidate = i/3; //next free frame number
 
 		// shell memory is full
-		if(!hasSpaceLeft) candidate = pick_rand_victim();
+		if(!hasSpaceLeft) candidate = pick_victim();
 
 		// end of file reached
 		if(feof(fp)) {
@@ -159,10 +161,12 @@ int load_file(FILE* fp, int* pEnd, char* filename, int* page_table, int page_all
 			{
 				shellmemory[j].var = strdup(filename);
 				shellmemory[j].value = '\0';
+				updateTimeLog(candidate);
 				continue;
 			}
 			shellmemory[j].var = strdup(filename);
 			shellmemory[j].value = strndup(line, strlen(line));
+			updateTimeLog(candidate);
 			lineCount++;
 		}
 		hasSpaceLeft = false;		//recheck hasSpaceLeft in the next iteration
@@ -171,7 +175,37 @@ int load_file(FILE* fp, int* pEnd, char* filename, int* page_table, int page_all
     return error_code;
 }
 
-int pick_rand_victim(){
+void updateTimeLog(int frame_num){
+	time_log[frame_num] = time++;
+}
+
+
+int findLRU() {
+	// find the LRU frame number (smallest time stamp)
+    int LRU_frame_num = 0; // Assume the first element is the minimum
+
+    for (int i = 1; i < FRAME_STORE_SIZE/3; ++i) {
+        if (time_log[i] < time_log[LRU_frame_num]) {
+            LRU_frame_num = i; // Update LRU_frame_num if a smaller element is found
+        }
+    }
+
+    return LRU_frame_num; //frame number
+}
+
+bool endsWithNewline(char *str) {
+    if (str == NULL || str[0] == '\0') {
+        // Handle empty string case
+        return false;
+    }
+
+    int length = strlen(str);
+
+    // Check if the last two characters are '\n'
+    return length >= 2 && str[length - 1] == '\n';
+}
+
+int pick_victim(){
 	//pick a random number within the range of frame store size
 	int victim = 0;
 	int line_to_replace = 3;
@@ -179,8 +213,9 @@ int pick_rand_victim(){
 	PCB* pcb;
 	char victim_name_buffer[100]; 
 
+
 	// victim is a physical address (shellmemory)
-	victim = 3*(rand() % (FRAME_STORE_SIZE/3));
+	victim = 3*findLRU();
 	candidate = victim/3; // candidate: next free frame number
 
 	printf("%s\n", "Page fault! Victim page contents:");
@@ -207,8 +242,13 @@ int pick_rand_victim(){
 			line_to_replace--;
 			continue;
 		}
-		//print the evicted line and reset its variable name and value to none
+
 		printf("%s", shellmemory[victim].value);
+		
+		// check if line end with \n
+		if(!endsWithNewline(shellmemory[victim].value)) printf("%s", "\n");
+		
+		//print the evicted line and reset its variable name and value to none
 		shellmemory[victim].var = "none";
 		shellmemory[victim].value = "none";
 		victim++;
@@ -242,7 +282,7 @@ void handlePageFault(PCB* pcb){
 
 
 	//if no space left, kick out a frame
-	if(hasSpaceLeft == 0) candidate = pick_rand_victim();
+	if(hasSpaceLeft == 0) candidate = pick_victim();
 
 	//update page table
 	//index=page number, page table[index]=frame number
@@ -264,6 +304,7 @@ void handlePageFault(PCB* pcb){
 		if (i >= pcb->PC) {
 			shellmemory[candidate*3+(i - pcb->PC)].var = strdup(pcb->file_name);
 			shellmemory[candidate*3+(i - pcb->PC)].value = strndup(lineBuffer, strlen(lineBuffer));
+			updateTimeLog(candidate);
 			lines_to_load--;
 		}
 		i++;
@@ -278,6 +319,7 @@ void handlePageFault(PCB* pcb){
 
 char * mem_get_value_at_line(int index){
 	if(index<0 || index > SHELL_MEM_LENGTH) return NULL; 
+	updateTimeLog(index/3); //update time log when reading from memory
 	return shellmemory[index].value;
 }
 

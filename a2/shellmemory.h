@@ -32,5 +32,6 @@ void printShellMemory();
 
 int resetmem();
 void handlePageFault(PCB* pcb);
-int pick_rand_victim();
+int pick_victim();
+void updateTimeLog(int frame_num);
 #endif
