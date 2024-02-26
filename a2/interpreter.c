@@ -259,6 +259,9 @@ int run(char* script){
 	return errCode;
 }
 
+/**
+ * my_cp: command to copy file from source directory to destination directory
+*/
 int my_cp (char* source_dir, char *filename, char* destination_dir){
 	//copy file to backing_store
 	int source_dir_namelen = strlen(source_dir);
@@ -278,6 +281,9 @@ int my_cp (char* source_dir, char *filename, char* destination_dir){
 	return errCode;
 }
 
+/**
+ * formulateFileName: creates a unique file name for copying into backing_store
+*/
 char* formulateFileName(char *fname){
 	//formulate correct file name
 	char* tempDestDirectory = "backing_store/";
@@ -314,6 +320,7 @@ char* formulateFileName(char *fname){
 
 }
 
+// modified exec command
 int exec(char *fname1, char *fname2, char *fname3) {
 	int error_code = 0;
 	char nameBuffer[1000];
