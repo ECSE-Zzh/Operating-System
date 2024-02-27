@@ -324,8 +324,6 @@ void handlePageFault(PCB* pcb){
 
 }
 
-
-
 char * mem_get_value_at_line(int index){
 	if(index<0 || index > SHELL_MEM_LENGTH) return NULL; 
 	updateTimeLog(index/3); //update time log when reading from memory

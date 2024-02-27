@@ -320,12 +320,25 @@ char* formulateFileName(char *fname){
 
 }
 
+int is_file_empty(char* file) {
+	FILE* f = fopen(file, "r");
+	if (f == NULL) {
+		return 1;
+	}
+	fseek(f, 0, SEEK_END);
+	long size = ftell(f); 
+	fclose(f);
+	return size == 0;
+}
+
 // modified exec command
 int exec(char *fname1, char *fname2, char *fname3) {
 	int error_code = 0;
 	char nameBuffer[1000];
 
-	if(fname1 != NULL){
+	
+	
+	if(fname1 != NULL && !is_file_empty(fname1)){
 		//clear nameBuffer
 		nameBuffer[0] = '\0'; 
 
@@ -339,7 +352,7 @@ int exec(char *fname1, char *fname2, char *fname3) {
 			return handle_error(error_code);
 		}
     }
-    if(fname2 != NULL){
+    if(fname2 != NULL && !is_file_empty(fname2)){
 		//clear nameBuffer
 		nameBuffer[0] = '\0'; 
 
@@ -353,7 +366,7 @@ int exec(char *fname1, char *fname2, char *fname3) {
 			return handle_error(error_code);
 		}
     }
-    if(fname3 != NULL){
+    if(fname3 != NULL && !is_file_empty(fname3)){
 		//clear nameBuffer
 		nameBuffer[0] = '\0'; 
 
@@ -371,4 +384,5 @@ int exec(char *fname1, char *fname2, char *fname3) {
 	if(error_code != 0){
 		return handle_error(error_code);
 	}
+	return 0; 
 }
