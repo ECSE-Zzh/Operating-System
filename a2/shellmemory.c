@@ -178,7 +178,9 @@ void updateTimeLog(int frame_num){
 	time_log[frame_num] = time++;
 }
 
-
+/**
+ * findLRU(): finds the LRU frame number
+*/
 int findLRU() {
 	// find the LRU frame number (smallest time stamp)
     int LRU_frame_num = 0; // Assume the first element is the minimum
@@ -192,6 +194,9 @@ int findLRU() {
     return LRU_frame_num; //frame number
 }
 
+/**
+ * endsWithNewline: boolean method to determine ending with new line
+*/
 bool endsWithNewline(char *str) {
     if (str == NULL || str[0] == '\0') {
         // Handle empty string case
@@ -204,6 +209,9 @@ bool endsWithNewline(char *str) {
     return length >= 2 && str[length - 1] == '\n';
 }
 
+/**
+ * pick_victim: picks a frame to evict from the frame store
+*/
 int pick_victim(){
 	//pick a random number within the range of frame store size
 	int victim = 0;
@@ -258,6 +266,9 @@ int pick_victim(){
 	return candidate;
 }
 
+/**
+ * handlePageFault: responsible for handling any page faults
+*/
 void handlePageFault(PCB* pcb){
     //find free spot in memory
 	int candidate;
@@ -312,8 +323,6 @@ void handlePageFault(PCB* pcb){
 	my_cd("..");
 
 }
-
-
 
 char * mem_get_value_at_line(int index){
 	if(index<0 || index > SHELL_MEM_LENGTH) return NULL; 

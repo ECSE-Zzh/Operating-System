@@ -259,6 +259,9 @@ int run(char* script){
 	return errCode;
 }
 
+/**
+ * my_cp: command to copy file from source directory to destination directory
+*/
 int my_cp (char* source_dir, char *filename, char* destination_dir){
 	//copy file to backing_store
 	int source_dir_namelen = strlen(source_dir);
@@ -278,6 +281,9 @@ int my_cp (char* source_dir, char *filename, char* destination_dir){
 	return errCode;
 }
 
+/**
+ * formulateFileName: creates a unique file name for copying into backing_store
+*/
 char* formulateFileName(char *fname){
 	//formulate correct file name
 	char* tempDestDirectory = "backing_store/";
@@ -314,11 +320,25 @@ char* formulateFileName(char *fname){
 
 }
 
+int is_file_empty(char* file) {
+	FILE* f = fopen(file, "r");
+	if (f == NULL) {
+		return 1;
+	}
+	fseek(f, 0, SEEK_END);
+	long size = ftell(f); 
+	fclose(f);
+	return size == 0;
+}
+
+// modified exec command
 int exec(char *fname1, char *fname2, char *fname3) {
 	int error_code = 0;
 	char nameBuffer[1000];
 
-	if(fname1 != NULL){
+	
+	
+	if(fname1 != NULL && !is_file_empty(fname1)){
 		//clear nameBuffer
 		nameBuffer[0] = '\0'; 
 
@@ -332,7 +352,7 @@ int exec(char *fname1, char *fname2, char *fname3) {
 			return handle_error(error_code);
 		}
     }
-    if(fname2 != NULL){
+    if(fname2 != NULL && !is_file_empty(fname2)){
 		//clear nameBuffer
 		nameBuffer[0] = '\0'; 
 
@@ -346,7 +366,7 @@ int exec(char *fname1, char *fname2, char *fname3) {
 			return handle_error(error_code);
 		}
     }
-    if(fname3 != NULL){
+    if(fname3 != NULL && !is_file_empty(fname3)){
 		//clear nameBuffer
 		nameBuffer[0] = '\0'; 
 
@@ -364,4 +384,5 @@ int exec(char *fname1, char *fname2, char *fname3) {
 	if(error_code != 0){
 		return handle_error(error_code);
 	}
+	return 0; 
 }

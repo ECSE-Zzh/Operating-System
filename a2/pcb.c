@@ -13,6 +13,7 @@ int generatePID(){
     return pid_counter++;
 }
 
+// helper methods for PCB storage and execution
 void initPCBStore(){
     //init PCB.pid at the beginning of execution
     for (int i = 0; i < PCB_STORE_SIZE; i++){
@@ -20,6 +21,7 @@ void initPCBStore(){
     }
 }
 
+// finds all unused PCB's
 int findUnusedPCB(){
     for(int i = 0; i < PCB_STORE_SIZE; i++){
         if(pcb_store[i].pid == 0){
@@ -32,7 +34,7 @@ int findUnusedPCB(){
 bool findPCB(PCB** pcb, char* filename){
     // find pcb based on file name
     for(int i = 0; i < PCB_STORE_SIZE; i++){
-        if(strcmp(filename, pcb_store[i].file_name)==0){
+        if(strcmp(filename, pcb_store[i].file_name)==0){ // if file name matches
             *pcb = &pcb_store[i];
             return true;
         }

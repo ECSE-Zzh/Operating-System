@@ -84,6 +84,9 @@ int shell_process_initialize(){
     return 0;
 }
 
+/**
+ * transPC: translates to a physical memory address
+*/
 int transPC(int PC, int* page_table){
     //translate PC to physical memory address
     int pageNumber, frameNumber, physical_addr;
