@@ -1,3 +1,10 @@
+/**
+ * Class: ECSE 427 - Operating Systems
+ * Authors: 
+ * Ziheng Zhou 260955157
+ * Wasif Somji 261003295
+*/
+
 #ifndef INTERPRETER_H
 #define INTERPRETER_H
 #include <stdbool.h>

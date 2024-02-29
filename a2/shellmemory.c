@@ -1,3 +1,10 @@
+/**
+ * Class: ECSE 427 - Operating Systems
+ * Authors: 
+ * Ziheng Zhou 260955157
+ * Wasif Somji 261003295
+*/
+
 #include "shellmemory.h"
 struct memory_struct{
 	char *var;
@@ -235,14 +242,13 @@ int pick_victim(){
 	int candidate;
 	PCB* pcb;
 	char victim_name_buffer[100]; 
-	char replacement_policy[50];
 
 	// Choose page replacement policy
 	if(userSetPageReplacementPolicy()){
-		if(strcmp(replacement_policy, "MRU")==0){
+		if(strcmp(getPageReplacementPolicy(), "MRU")==0){
 			victim = 3*findMRU();
 		} else {
-			// if user set an unsupported page replacement policy, system choose LRU automatically
+			// if user set an unsupported page replacement policy, system will choose LRU automatically
 			victim = 3*findLRU(); 
 		}
 	}

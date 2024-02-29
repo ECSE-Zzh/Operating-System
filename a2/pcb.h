@@ -1,13 +1,15 @@
+/**
+ * Class: ECSE 427 - Operating Systems
+ * Authors: 
+ * Ziheng Zhou 260955157
+ * Wasif Somji 261003295
+*/
+
 #ifndef PCB_H
 #define PCB_H
 #include <stdbool.h>
 
 #define PAGE_TABLE_SIZE 100
-// typedef struct{
-//     int page_entries;
-//     int line_index[3];
-//     // int valid_bit[3];
-// }PAGE_TABLE;
 
 /*
  * Struct:  PCB 
