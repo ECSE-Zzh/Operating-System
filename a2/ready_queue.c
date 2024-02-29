@@ -136,6 +136,7 @@ void sort_ready_queue(){
     bool sorted = false;
     while(!sorted){
         sorted = true;
+        QueueNode *cur = head; // set head as current node, else cur->next could be null before finishing bubble sort
         while(cur->next!=NULL){
             if(swap_needed(cur)){
                 sorted = false;

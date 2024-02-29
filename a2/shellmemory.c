@@ -183,15 +183,31 @@ void updateTimeLog(int frame_num){
 */
 int findLRU() {
 	// find the LRU frame number (smallest time stamp)
-    int LRU_frame_num = 0; // Assume the first element is the minimum
+    int LRU_frame_num = 0; 
 
     for (int i = 1; i < FRAME_STORE_SIZE/3; ++i) {
         if (time_log[i] < time_log[LRU_frame_num]) {
-            LRU_frame_num = i; // Update LRU_frame_num if a smaller element is found
+            LRU_frame_num = i; // Update LRU_frame_num if a smaller time stamp is found
         }
     }
 
     return LRU_frame_num; //frame number
+}
+
+/**
+ * findMRU(): finds the MRU frame number
+*/
+int findMRU() {
+	// find the MRU frame number (largest time stamp)
+    int MRU_frame_num = 0; 
+
+    for (int i = 1; i < FRAME_STORE_SIZE/3; ++i) {
+        if (time_log[i] > time_log[MRU_frame_num]) {
+            MRU_frame_num = i; // Update MRU_frame_num if a larger time stamp is found
+        }
+    }
+
+    return MRU_frame_num; //frame number
 }
 
 /**
@@ -219,9 +235,20 @@ int pick_victim(){
 	int candidate;
 	PCB* pcb;
 	char victim_name_buffer[100]; 
+	char replacement_policy[50];
+
+	// Choose page replacement policy
+	if(userSetPageReplacementPolicy()){
+		if(strcmp(replacement_policy, "MRU")==0){
+			victim = 3*findMRU();
+		} else {
+			// if user set an unsupported page replacement policy, system choose LRU automatically
+			victim = 3*findLRU(); 
+		}
+	}
 
 	// victim is a physical address (shellmemory)
-	victim = 3*findLRU();
+	if(!userSetPageReplacementPolicy()) victim = 3*findLRU(); //use LRU as default
 	candidate = victim/3; // candidate: next free frame number
 
 	printf("%s\n", "Page fault! Victim page contents:");

@@ -3,7 +3,6 @@
 #include <string.h> 
 #include <unistd.h>
 #include <sys/stat.h>
-#include <stdbool.h>
 #include <time.h>
 
 #include "shellmemory.h"
@@ -13,6 +12,8 @@
 #include "interpreter.h"
 
 int MAX_ARGS_SIZE = 7;
+char my_page_replacement_policy[50];
+bool user_set_page_replacement_policy = false;
 
 char* error_msgs[] = {
 	"no error",
@@ -47,6 +48,7 @@ int my_cd(char* dirname);
 int my_cp (char* source_dir, char *filename, char* destination_dir);
 char* formulateFileName(char *fname);//, char* policy, bool background, bool mt);
 int exec(char *fname1, char *fname2, char *fname3); 
+int is_file_empty(char* file);
 
 // Interpret commands and their arguments
 int interpreter(char* command_args[], int args_size){
@@ -143,7 +145,10 @@ int interpreter(char* command_args[], int args_size){
 		if(args_size > 1) return handle_error(TOO_MANY_TOKENS);
 		return resetmem();
 	}
-	
+	else if(strcmp(command_args[0], "pagepolicy") == 0){
+		if(args_size > 2) return handle_error(TOO_MANY_TOKENS);
+		return pageReplacementPolicy(command_args[1]);
+	}	
 	return handle_error(BAD_COMMAND);
 }
 
@@ -245,15 +250,18 @@ int run(char* script){
 	int errCode = 0;
 	char nameBuffer[1000];
 
-	//load script into shell
-	strcpy(nameBuffer, formulateFileName(script));
-	errCode = process_initialize(nameBuffer);
+	//load script into shell if script is not null
+	if(script != NULL && !is_file_empty(script)){
+		strcpy(nameBuffer, formulateFileName(script));
+		errCode = process_initialize(nameBuffer);
 
-	my_cd("..");
+		my_cd("..");
 
-	if(errCode == 11){
-		return handle_error(errCode);
+		if(errCode == 11){
+			return handle_error(errCode);
+		}
 	}
+
 	//run with FCFS
 	errCode = schedule_by_policy("FCFS"); //, false);
 	return errCode;
@@ -385,4 +393,22 @@ int exec(char *fname1, char *fname2, char *fname3) {
 		return handle_error(error_code);
 	}
 	return 0; 
+}
+
+// Use user defined page replacement policy
+// if defined page replacement policy is system-unsupported, use LRU automatically
+int pageReplacementPolicy(char* page_replacement_policy){
+	user_set_page_replacement_policy = true;
+	strcpy(my_page_replacement_policy, page_replacement_policy);
+	return 0;
+}
+
+char* getPageReplacementPolicy(){
+	if(user_set_page_replacement_policy) return my_page_replacement_policy;
+	return "LRU";
+}
+
+// Check if user choose a specific page replacement policy
+bool userSetPageReplacementPolicy(){
+	return user_set_page_replacement_policy;
 }

@@ -1,9 +1,13 @@
 #ifndef INTERPRETER_H
 #define INTERPRETER_H
+#include <stdbool.h>
 
 int interpreter(char* command_args[], int args_size);
 int my_cd(char* dirname);
 int help();
+int pageReplacementPolicy(char* page_replacement_policy);
+char* getPageReplacementPolicy();
+bool userSetPageReplacementPolicy();
 
 enum Error {
 	NO_ERROR,
