@@ -172,7 +172,9 @@ run SCRIPT.TXT		Executes the file SCRIPT.TXT\n ";
 }
 
 int quit(){
-	// my_cd("..");
+	my_cd("./backing_store");
+	my_cd("..");
+
 	printf("%s\n", "Bye!");
 	ready_queue_destory();
 
