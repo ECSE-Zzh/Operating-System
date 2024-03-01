@@ -17,7 +17,8 @@ void cleanup(void) {
 
 int main(int argc, char *argv[])
 {
-    atexit(cleanup);    
+    atexit(cleanup); 
+    system("mkdir ./backing_store");   
 
     printf("%s\n", "Shell v2.0");
     printf("Frame Store Size = %d; Variable Store Size = %d\n", FRAME_STORE_SIZE, VARIABLE_STORE_SIZE);
@@ -38,9 +39,6 @@ int main(int argc, char *argv[])
 
     // Remove all contents in backing store directory if it exists
     // system("rm -rf ./backing_store*");
-
-    // Create backing store directory if it does not exist
-    system("mkdir ./backing_store");
 
     while (1)
     {
