@@ -6,7 +6,7 @@ int parseInput(char ui[]);
 
 void cleanup() {
     // Code to remove the backing store directory
-    system("rm -rf ./backing_store");
+    system("rm -rf ./backing_store*");
     printf("Backing store directory removed.\n");
 }
 
