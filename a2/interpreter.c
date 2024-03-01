@@ -335,8 +335,6 @@ int is_file_empty(char* file) {
 int exec(char *fname1, char *fname2, char *fname3) {
 	int error_code = 0;
 	char nameBuffer[1000];
-
-	
 	
 	if(fname1 != NULL && !is_file_empty(fname1)){
 		//clear nameBuffer
