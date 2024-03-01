@@ -10,8 +10,16 @@
 int MAX_USER_INPUT = 1000;
 int parseInput(char ui[]);
 
+void cleanup(void) {
+    system("rm -rf ./backing_store*");
+}
+
+
 int main(int argc, char *argv[])
 {
+    atexit(cleanup); 
+    system("mkdir ./backing_store");   
+
     printf("%s\n", "Shell v2.0");
     printf("Frame Store Size = %d; Variable Store Size = %d\n", FRAME_STORE_SIZE, VARIABLE_STORE_SIZE);
 
@@ -30,10 +38,7 @@ int main(int argc, char *argv[])
     initPCBStore();
 
     // Remove all contents in backing store directory if it exists
-    system("rm -rf ./backing_store*");
-
-    // Create backing store directory if it does not exist
-    system("mkdir ./backing_store");
+    // system("rm -rf ./backing_store*");
 
     while (1)
     {
