@@ -172,6 +172,7 @@ run SCRIPT.TXT		Executes the file SCRIPT.TXT\n ";
 }
 
 int quit(){
+	my_cd("..");
 	printf("%s\n", "Bye!");
 	ready_queue_destory();
 
