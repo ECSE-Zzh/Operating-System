@@ -10,6 +10,12 @@
 int MAX_USER_INPUT = 1000;
 int parseInput(char ui[]);
 
+void cleanup() {
+    // Code to remove the backing store directory
+    system("rm -rf ./backing_store*");
+    printf("Backing store directory removed.\n");
+}
+
 int main(int argc, char *argv[])
 {
     printf("%s\n", "Shell v2.0");
@@ -55,6 +61,8 @@ int main(int argc, char *argv[])
             memset(userInput, 0, sizeof(userInput));
         }
     }
+
+    atexit(cleanup); 
 
     return 0;
 }
