@@ -9,17 +9,10 @@
 
 int MAX_USER_INPUT = 1000;
 int parseInput(char ui[]);
-
-void cleanup(void) {
-    system("rm -rf ./backing_store*");
-}
-
+char cwd[1024];
 
 int main(int argc, char *argv[])
 {
-    atexit(cleanup); 
-    system("mkdir ./backing_store");   
-
     printf("%s\n", "Shell v2.0");
     printf("Frame Store Size = %d; Variable Store Size = %d\n", FRAME_STORE_SIZE, VARIABLE_STORE_SIZE);
 
@@ -31,6 +24,9 @@ int main(int argc, char *argv[])
     for (int i = 0; i < MAX_USER_INPUT; i++)
         userInput[i] = '\0';
 
+    // save path at the very beginning
+    getcwd(cwd, sizeof(cwd));
+
     // init shell memory
     mem_init();
 
@@ -38,7 +34,10 @@ int main(int argc, char *argv[])
     initPCBStore();
 
     // Remove all contents in backing store directory if it exists
-    // system("rm -rf ./backing_store*");
+    system("rm -rf ./backing_store*");
+
+    // Create backing store directory if it does not exist
+    system("mkdir ./backing_store");
 
     while (1)
     {
@@ -106,4 +105,9 @@ int parseInput(char *ui)
     }
     errorCode = interpreter(words, w);
     return errorCode;
+}
+
+// return the path in where shell initialized
+char* get_start_directory(){
+    return strcpy(cwd, cwd);
 }
