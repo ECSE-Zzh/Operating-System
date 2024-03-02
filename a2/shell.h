@@ -23,3 +23,5 @@
 #define SHELL_H
 int parseInput(char *ui);
 #endif
+
+char* get_start_directory();

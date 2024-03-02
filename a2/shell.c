@@ -9,6 +9,7 @@
 
 int MAX_USER_INPUT = 1000;
 int parseInput(char ui[]);
+char cwd[1024];
 
 int main(int argc, char *argv[])
 {
@@ -22,6 +23,9 @@ int main(int argc, char *argv[])
     // init user input
     for (int i = 0; i < MAX_USER_INPUT; i++)
         userInput[i] = '\0';
+
+    // save path at the very beginning
+    getcwd(cwd, sizeof(cwd));
 
     // init shell memory
     mem_init();
@@ -101,4 +105,9 @@ int parseInput(char *ui)
     }
     errorCode = interpreter(words, w);
     return errorCode;
+}
+
+// return the path in where shell initialized
+char* get_start_directory(){
+    return strcpy(cwd, cwd);
 }

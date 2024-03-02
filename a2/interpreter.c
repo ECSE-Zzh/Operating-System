@@ -172,8 +172,8 @@ run SCRIPT.TXT		Executes the file SCRIPT.TXT\n ";
 }
 
 int quit(){
-	my_cd("./backing_store");
-	my_cd("..");
+	// go back to where the shell initialized to remove backing store
+	chdir(get_start_directory());
 
 	printf("%s\n", "Bye!");
 	ready_queue_destory();
