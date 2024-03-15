@@ -19,5 +19,5 @@ enum Error {
 
 int interpreter(char *command_args[], int args_size, char *cwd);
 int help();
-
+int handle_error(enum Error error_code);
 #endif
