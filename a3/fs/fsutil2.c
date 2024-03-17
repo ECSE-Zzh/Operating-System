@@ -74,6 +74,7 @@ int copy_in(char *fname) {
 }
 
 int copy_out(char *fname) {
+  //copy the file on shell's hard dive to real hard drive with the same name
   char* contentBuffer;
   int shellDiskFileSize;
   int read;
@@ -97,7 +98,30 @@ int copy_out(char *fname) {
 }
 
 void find_file(char *pattern) {
-  // TODO
+  // search for an input pattern in all files on shell's hard drive
+  struct dir *dir;
+  char name[NAME_MAX + 1]; // store one file name
+  char* contentBuffer;
+  int fileSize = 0;
+
+  dir = dir_open_root();
+
+  // read all files on disk, search each of them for patterns
+  while (dir_readdir(dir, name)){
+    // read one file, load its content into contentBuffer
+    fileSize = fsutil_size(name);
+    contentBuffer = (char *)malloc((fileSize + 1) * sizeof(char));
+    fsutil_read_at(name, contentBuffer, (unsigned int)fileSize, 0);
+    contentBuffer[fileSize] = '\0';
+
+    // search pattern in contentBuffer, if patter matches, print out file name
+    if(strstr(contentBuffer, pattern) != NULL) printf("%s\n", name);
+
+    free(contentBuffer);
+  }
+
+  dir_close(dir);
+
   return;
 }
 
