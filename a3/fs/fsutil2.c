@@ -215,8 +215,8 @@ void fragmentation_degree() {
 
   dir_close(dir);
 
-  printf("fragmentable file: %d\n", fragmentable_file_count);
-  printf("fragmented file: %d\n", fragmented_file_count);
+  // printf("fragmentable file: %d\n", fragmentable_file_count);
+  // printf("fragmented file: %d\n", fragmented_file_count);
 
   printf("fragmentation degree: %f\n", (float)fragmented_file_count / (float)fragmentable_file_count);
   return;
@@ -265,7 +265,7 @@ bool file_is_fragmented(block_sector_t blocks[DIRECT_BLOCKS_COUNT]){
     if(blocks[blockIndex] != 0){
       sectorGap = blocks[blockIndex + 1] - blocks[blockIndex];
       if(sectorGap > 3){
-        printf("b1: %d, b2: %d\n", blocks[blockIndex], blocks[blockIndex + 1]);
+        // printf("b1: %d, b2: %d\n", blocks[blockIndex], blocks[blockIndex + 1]);
         return true;
       } 
     }
