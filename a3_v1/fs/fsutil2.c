@@ -21,6 +21,7 @@
 
 int min(int sourceFileSize, int freeSpace); //copy_in helper function
 int fsutil_read_at(char *file_name, void *buffer, unsigned size, offset_t file_ofs); //copy_out helper function
+bool file_is_fragmentable(struct file *file); //fragmentation_degree helper function
 
 int copy_in(char *fname) {
   //copy the file on real hard dive into the shell's hard drive with the same name in the root directory
@@ -126,7 +127,35 @@ void find_file(char *pattern) {
 }
 
 void fragmentation_degree() {
-  // TODO
+  struct dir *dir;
+  struct file *file; 
+  char fname[NAME_MAX + 1];
+  int fragmentableFileCount = 0;
+  int numberOfSectors = 0; // number of sectors that one file taken
+
+  dir = dir_open_root();
+
+  // traverse the file system
+  while(dir_readdir(dir, fname)){
+    
+    file = get_file_by_fname(fname);
+    if(file == NULL){
+       file = filesys_open(fname);
+       if(file == NULL) return; // file name does not exist
+    }
+
+    if (file != NULL && file->inode != NULL) {
+      // get number of fragmentable files
+      numberOfSectors = bytes_to_sectors(file->inode->data.length);
+      if(numberOfSectors > 1) fragmentableFileCount++;
+
+      
+    }
+
+  }
+
+  dir_close(dir);
+  return;
 }
 
 int defragment() {
@@ -161,4 +190,36 @@ int fsutil_read_at(char *file_name, void *buffer, unsigned size, offset_t file_o
     add_to_file_table(file_s, file_name);
   }
   return file_read_at(file_s, buffer, size, file_ofs);
+}
+
+/**
+ * check if a file is fragmentable (contains more than one data block)
+ */
+bool file_is_fragmentable(struct file *file){
+  bool fragmentable = false;
+  int dataBlockCount = 0; // number of data blocks taken
+
+  if (file != NULL && file->inode != NULL) {
+    if(file->inode->data.doubly_indirect_block != 0){
+      // if doubly_indirect_block is not null, this file is fragmentable
+      fragmentable = true;
+      return fragmentable;
+    } else if(file->inode->data.indirect_block != 0){
+      // if indirect_block is not null, this file is fragmentable
+      fragmentable = true;
+      return fragmentable;
+    } else {
+      // if direct_block contains more than one data block that is not null, this file is fragmentable
+      for (int i = 0; i < DIRECT_BLOCKS_COUNT; i++) {
+        // printf("direct_blocks[%d]: %u\n", i, file->inode->data.direct_blocks[i]); 
+        if(file->inode->data.direct_blocks[i] != 0) dataBlockCount++;
+        if(dataBlockCount > 1){
+          fragmentable = true;
+          return fragmentable;
+        }
+      }
+    }
+
+  }
+  return fragmentable;
 }
