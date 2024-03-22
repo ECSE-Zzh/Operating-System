@@ -20,10 +20,13 @@
 int min(int source_file_size, int free_space); //copy_in helper function
 int fsutil_read_at(char *file_name, void *buffer, unsigned size, offset_t file_ofs); //copy_out helper function
 bool file_is_fragmented(block_sector_t blocks[DIRECT_BLOCKS_COUNT]);
+int get_size_of_files_on_disk(); //defragment helper function
 
 struct inode_indirect_block_sector {
   block_sector_t blocks[INDIRECT_BLOCKS_PER_SECTOR];
 };
+
+//----------------------------------------------SEPARATION----------------LINE-------------------------------------//
 
 int copy_in(char *fname) {
   //copy the file on real hard dive into the shell's hard drive with the same name in the root directory
@@ -78,6 +81,8 @@ int copy_in(char *fname) {
   return 0;
 }
 
+//----------------------------------------------SEPARATION----------------LINE-------------------------------------//
+
 int copy_out(char *fname) {
   //copy the file on shell's hard dive to real hard drive with the same name
   char* content_buffer;
@@ -105,6 +110,7 @@ int copy_out(char *fname) {
   return 0;
 }
 
+//----------------------------------------------SEPARATION----------------LINE-------------------------------------//
 
 void find_file(char *pattern) {
   // search for an input pattern in all files on shell's hard drive
@@ -133,6 +139,8 @@ void find_file(char *pattern) {
 
   return;
 }
+
+//----------------------------------------------SEPARATION----------------LINE-------------------------------------//
 
 void fragmentation_degree() {
   struct dir *dir;
@@ -167,7 +175,7 @@ void fragmentation_degree() {
         is_fragmentable = true;
       }  
     }
-    
+
     // get number of fragmented files
     if(is_fragmentable){   
       // direct blocks
@@ -176,7 +184,6 @@ void fragmentation_degree() {
         done_check = true;
         fragmented_file_count++;
       } 
-
       // indirect blocks
       if(!done_check && sector_count > DIRECT_BLOCKS_COUNT){
         // get indirect blocks
@@ -222,10 +229,101 @@ void fragmentation_degree() {
   return;
 }
 
+//----------------------------------------------SEPARATION----------------LINE-------------------------------------//
+
 int defragment() {
-  // TODO
+  struct dir *dir;
+  struct file *file; 
+  char fname[NAME_MAX + 1];
+  int total_sector_count = 0;
+  int sector_count = 0;
+  int sector_not_done = 0;
+  int buffer_index_counter = 0;
+  block_sector_t *file_buffer;
+  struct inode_indirect_block_sector *indirect_block_sector;
+  struct inode_indirect_block_sector *doubly_indirect_block_sector; 
+
+  total_sector_count = get_size_of_files_on_disk();
+  // printf("defrag count: %d\n", total_sector_count);
+
+  file_buffer = calloc(get_size_of_files_on_disk(), sizeof(block_sector_t));
+  dir = dir_open_root();
+  // traverse the file system
+  while(dir_readdir(dir, fname)){
+    // get a file
+    file = get_file_by_fname(fname);
+    if(file == NULL){
+       file = filesys_open(fname);
+       if(file == NULL) return -1; // file name does not exist
+    }
+
+    if (file != NULL && file->inode != NULL){
+      sector_count = bytes_to_sectors(file->inode->data.length); 
+      sector_not_done = sector_count;
+
+      // get non-empty direct blocks
+      for(int i = 0; i < DIRECT_BLOCKS_COUNT; i++){
+        if(file->inode->data.direct_blocks[i] != 0){
+          memcpy(&file_buffer[buffer_index_counter], &(file->inode->data.direct_blocks)[i], sizeof(block_sector_t));
+          buffer_index_counter++;
+          sector_not_done--;
+        }
+      }
+
+      // get non-empty indirect blocks
+      if(sector_count > DIRECT_BLOCKS_COUNT || sector_not_done > 0){
+        printf("%s\n", "here");
+        indirect_block_sector = calloc(1, sizeof(struct inode_indirect_block_sector));
+        buffer_cache_read(file->inode->data.indirect_block, indirect_block_sector);
+        for(int i = 0; i < DIRECT_BLOCKS_COUNT; i++){
+          if(indirect_block_sector->blocks[i] != 0){
+            memcpy(&file_buffer[buffer_index_counter], &(indirect_block_sector->blocks)[i], sizeof(block_sector_t));
+            buffer_index_counter++;
+            sector_not_done--;
+          }
+        }
+        free(indirect_block_sector);
+      }
+
+      // get non-empty doubly indirect block
+      if(sector_count > DIRECT_BLOCKS_COUNT*INDIRECT_BLOCKS_PER_SECTOR || sector_not_done > 0){
+        for(int i = 0; i < INDIRECT_BLOCKS_PER_SECTOR; i++){
+          doubly_indirect_block_sector = calloc(1, sizeof(struct inode_indirect_block_sector)); 
+          buffer_cache_read(file->inode->data.doubly_indirect_block, indirect_block_sector);
+          buffer_cache_read(indirect_block_sector->blocks[i], doubly_indirect_block_sector);
+
+          for(int j = 0; j < DIRECT_BLOCKS_COUNT; j++){
+            if(doubly_indirect_block_sector->blocks[j] != 0){
+              memcpy(&file_buffer[buffer_index_counter], &(doubly_indirect_block_sector->blocks)[j], sizeof(block_sector_t));
+              buffer_index_counter++;
+              sector_not_done--;
+            }
+          }
+          
+          free(doubly_indirect_block_sector);
+        }
+
+      }
+
+    } 
+
+  }
+  for(int i = 0; i < total_sector_count; i++){
+    printf("block[%d]: %d\n", i, file_buffer[i]);
+
+
+
+    
+  }
+
+
+
+  free(file_buffer);
+  dir_close(dir);
   return 0;
 }
+
+//----------------------------------------------SEPARATION----------------LINE-------------------------------------//
 
 void recover(int flag) {
   if (flag == 0) { // recover deleted inodes
@@ -239,6 +337,8 @@ void recover(int flag) {
     // TODO
   }
 }
+
+//----------------------------------------------HELPER----FUNCTIONS----START----HERE-------------------------------------//
 
 int min(int source_file_size, int free_space) {
   return (source_file_size < free_space) ? source_file_size : free_space;
@@ -262,10 +362,10 @@ bool file_is_fragmented(block_sector_t blocks[DIRECT_BLOCKS_COUNT]){
 
   // traverse through blocks
   while(blockIndex < DIRECT_BLOCKS_COUNT){
+    // printf("b1: %d, b2: %d\n", blocks[blockIndex], blocks[blockIndex + 1]);
     if(blocks[blockIndex] != 0){
       sectorGap = blocks[blockIndex + 1] - blocks[blockIndex];
       if(sectorGap > 3){
-        // printf("b1: %d, b2: %d\n", blocks[blockIndex], blocks[blockIndex + 1]);
         return true;
       } 
     }
@@ -273,3 +373,35 @@ bool file_is_fragmented(block_sector_t blocks[DIRECT_BLOCKS_COUNT]){
   }
   return false;
 }
+
+// return the number of sectors taken by all files on current disk
+int get_size_of_files_on_disk(){
+  struct dir *dir;
+  struct file *file; 
+  char fname[NAME_MAX + 1];
+  int sector_count = 0;
+  int total_sectors = 0;
+
+  dir = dir_open_root();
+
+  while(dir_readdir(dir, fname)){
+    file = get_file_by_fname(fname);
+
+    if(file == NULL){
+       file = filesys_open(fname);
+       if(file == NULL) return -1; // file name does not exist
+    }
+
+    if (file != NULL && file->inode != NULL){
+      sector_count = bytes_to_sectors(file->inode->data.length); 
+      // printf("fname: %s, size: %d\n", fname, sector_count);
+      total_sectors += sector_count; //get total number of files on hard drive
+    }
+  } 
+
+  dir_close(dir);
+  // printf("tot: %d\n", total_sectors);
+
+  return total_sectors;
+}
+
