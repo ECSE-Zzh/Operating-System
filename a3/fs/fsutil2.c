@@ -19,15 +19,19 @@
 
 int min(int source_file_size, int free_space); //copy_in helper function
 int fsutil_read_at(char *file_name, void *buffer, unsigned size, offset_t file_ofs); //copy_out helper function
-bool file_is_fragmented(block_sector_t blocks[DIRECT_BLOCKS_COUNT]);
-int get_size_of_files_on_disk(); //defragment helper function
+bool file_is_fragmented(block_sector_t *blocks, int sector_count);
+//defragment helper functions
+int get_size_of_files_on_disk(int *file_count);
+bool is_sector_free(int num_sector);
+void reorganize_file(block_sector_t **files_sectors_buffer, int *file_size_buffer, struct file **file_buffer, char **file_name_buffer, int file_count, int total_sector_count);
+void reorganize_file_sector_number(block_sector_t **files_sectors_buffer, int *file_size_buffer, struct file **file_buffer, int file_count);
 
 struct inode_indirect_block_sector {
   block_sector_t blocks[INDIRECT_BLOCKS_PER_SECTOR];
 };
 
 //----------------------------------------------SEPARATION----------------LINE-------------------------------------//
-
+/*yet to support copying in large file*/
 int copy_in(char *fname) {
   //copy the file on real hard dive into the shell's hard drive with the same name in the root directory
   FILE* source_file;
@@ -44,7 +48,6 @@ int copy_in(char *fname) {
   // determine the length of the file
   fseek(source_file, 0, SEEK_END);
   source_file_size = ftell(source_file);
-  // printf("size: %d\n", source_file_size);
   rewind(source_file);
 
   // get free space (byte) on hard drive
@@ -52,7 +55,6 @@ int copy_in(char *fname) {
   
   // create copied new file on shell's hard drive, with new file size = source file size(if free space is enough)
   create_success = fsutil_create(fname, min(source_file_size, free_space));
-  // printf("min size: %d\n", min(source_file_size, free_space));
   if(!create_success){
     fclose(source_file);
     return handle_error(FILE_CREATION_ERROR);
@@ -170,6 +172,7 @@ void fragmentation_degree() {
     // get number of fragmentable files
     if (file != NULL && file->inode != NULL) {
       sector_count = bytes_to_sectors(file->inode->data.length);
+      // printf("size: %d\n", sector_count);
       if(sector_count > 1){
         fragmentable_file_count++;
         is_fragmentable = true;
@@ -179,41 +182,41 @@ void fragmentation_degree() {
     // get number of fragmented files
     if(is_fragmentable){   
       // direct blocks
-      is_fragmented = file_is_fragmented(file->inode->data.direct_blocks);
+      is_fragmented = file_is_fragmented(file->inode->data.direct_blocks, sector_count);
       if(is_fragmented){
         done_check = true;
         fragmented_file_count++;
       } 
+
       // indirect blocks
       if(!done_check && sector_count > DIRECT_BLOCKS_COUNT){
         // get indirect blocks
         indirect_block_sector = calloc(1, sizeof(struct inode_indirect_block_sector));
         buffer_cache_read(file->inode->data.indirect_block, indirect_block_sector);
-        is_fragmented = file_is_fragmented(indirect_block_sector->blocks);
+        // check if file is fragmented
+        is_fragmented = file_is_fragmented(indirect_block_sector->blocks, sector_count-DIRECT_BLOCKS_COUNT);
         if(is_fragmented){
           done_check = true;
           fragmented_file_count++;
         }
-
         free(indirect_block_sector);
       }
 
       // doubly indirect blocks
-      if(!done_check && sector_count > INDIRECT_BLOCKS_PER_SECTOR * DIRECT_BLOCKS_COUNT){
+      if(!done_check && sector_count > INDIRECT_BLOCKS_PER_SECTOR + DIRECT_BLOCKS_COUNT){
         for(int i = 0; i < INDIRECT_BLOCKS_PER_SECTOR; i++){
           // get doubly indirect blocks
           doubly_indirect_block_sector = calloc(1, sizeof(struct inode_indirect_block_sector)); 
           buffer_cache_read(file->inode->data.doubly_indirect_block, indirect_block_sector);
           buffer_cache_read(indirect_block_sector->blocks[i], doubly_indirect_block_sector);
-
-          is_fragmented = file_is_fragmented(doubly_indirect_block_sector->blocks);
+          // check if file is fragmented
+          is_fragmented = file_is_fragmented(doubly_indirect_block_sector->blocks, sector_count-(INDIRECT_BLOCKS_PER_SECTOR+DIRECT_BLOCKS_COUNT));
           if(is_fragmented){
             done_check = true;
             fragmented_file_count++;
             free(doubly_indirect_block_sector);
             break;
           }
-
           free(doubly_indirect_block_sector);
         }
       }
@@ -221,10 +224,8 @@ void fragmentation_degree() {
   }
 
   dir_close(dir);
-
   // printf("fragmentable file: %d\n", fragmentable_file_count);
   // printf("fragmented file: %d\n", fragmented_file_count);
-
   printf("fragmentation degree: %f\n", (float)fragmented_file_count / (float)fragmentable_file_count);
   return;
 }
@@ -234,19 +235,31 @@ void fragmentation_degree() {
 int defragment() {
   struct dir *dir;
   struct file *file; 
+  // struct dir_entry e;
   char fname[NAME_MAX + 1];
+  int file_count = 0;
+  int *file_size_buffer; // store sector_count of each file
+  int num_inode = 0;
   int total_sector_count = 0;
   int sector_count = 0;
   int sector_not_done = 0;
   int buffer_index_counter = 0;
-  block_sector_t *file_buffer;
+  struct file **file_buffer; // store files
+  block_sector_t **files_sectors_buffer; // store all non-empty data blocks
   struct inode_indirect_block_sector *indirect_block_sector;
   struct inode_indirect_block_sector *doubly_indirect_block_sector; 
+  char **file_name_buffer; // store file names
+  int *file_inode_buffer; // store inode of each file
 
-  total_sector_count = get_size_of_files_on_disk();
-  // printf("defrag count: %d\n", total_sector_count);
+  total_sector_count = get_size_of_files_on_disk(&file_count);
 
-  file_buffer = calloc(get_size_of_files_on_disk(), sizeof(block_sector_t));
+  // allocate space for buffers
+  files_sectors_buffer = calloc(total_sector_count, sizeof(block_sector_t*));
+  file_buffer = calloc(file_count, sizeof(struct file*));
+  file_size_buffer = calloc(file_count, sizeof(int));
+  file_name_buffer = calloc(file_count, sizeof(fname));
+  file_inode_buffer = calloc(file_count, sizeof(int));
+
   dir = dir_open_root();
   // traverse the file system
   while(dir_readdir(dir, fname)){
@@ -261,23 +274,34 @@ int defragment() {
       sector_count = bytes_to_sectors(file->inode->data.length); 
       sector_not_done = sector_count;
 
-      // get non-empty direct blocks
+      // release inode sector, load related file information into buffers
+      if(num_inode != file_count){
+        file_buffer[num_inode] = file;
+        file_size_buffer[num_inode] = sector_count;
+        file_name_buffer[num_inode] = fname;
+        file_inode_buffer[num_inode] = file->inode->sector;
+        if(!is_sector_free(file->inode->sector)) free_map_release(file->inode->sector, 1);
+        num_inode++;
+      } 
+
+      // get non-empty direct blocks  
       for(int i = 0; i < DIRECT_BLOCKS_COUNT; i++){
         if(file->inode->data.direct_blocks[i] != 0){
-          memcpy(&file_buffer[buffer_index_counter], &(file->inode->data.direct_blocks)[i], sizeof(block_sector_t));
+          files_sectors_buffer[buffer_index_counter] = &(file->inode->data.direct_blocks[i]);
+          if(!is_sector_free(file->inode->data.direct_blocks[i])) free_map_release(file->inode->data.direct_blocks[i], 1); // release data blocks for reuse
           buffer_index_counter++;
           sector_not_done--;
         }
       }
-
+      
       // get non-empty indirect blocks
       if(sector_count > DIRECT_BLOCKS_COUNT || sector_not_done > 0){
-        printf("%s\n", "here");
         indirect_block_sector = calloc(1, sizeof(struct inode_indirect_block_sector));
         buffer_cache_read(file->inode->data.indirect_block, indirect_block_sector);
-        for(int i = 0; i < DIRECT_BLOCKS_COUNT; i++){
+        for(int i = 0; i < INDIRECT_BLOCKS_PER_SECTOR; i++){
           if(indirect_block_sector->blocks[i] != 0){
-            memcpy(&file_buffer[buffer_index_counter], &(indirect_block_sector->blocks)[i], sizeof(block_sector_t));
+            files_sectors_buffer[buffer_index_counter] = &(indirect_block_sector->blocks[i]);
+            if(!is_sector_free(indirect_block_sector->blocks[i])) free_map_release(indirect_block_sector->blocks[i], 1); // release indirect data blocks for reuse
             buffer_index_counter++;
             sector_not_done--;
           }
@@ -292,34 +316,29 @@ int defragment() {
           buffer_cache_read(file->inode->data.doubly_indirect_block, indirect_block_sector);
           buffer_cache_read(indirect_block_sector->blocks[i], doubly_indirect_block_sector);
 
-          for(int j = 0; j < DIRECT_BLOCKS_COUNT; j++){
+          for(int j = 0; j < INDIRECT_BLOCKS_PER_SECTOR; j++){
             if(doubly_indirect_block_sector->blocks[j] != 0){
-              memcpy(&file_buffer[buffer_index_counter], &(doubly_indirect_block_sector->blocks)[j], sizeof(block_sector_t));
+              files_sectors_buffer[buffer_index_counter] = &(doubly_indirect_block_sector->blocks[i]);
+              if(!is_sector_free(doubly_indirect_block_sector->blocks[j])) free_map_release(doubly_indirect_block_sector->blocks[j], 1); // release doubly-indirect data blocks for reuse
               buffer_index_counter++;
               sector_not_done--;
             }
           }
-          
           free(doubly_indirect_block_sector);
         }
-
       }
-
     } 
-
   }
-  for(int i = 0; i < total_sector_count; i++){
-    printf("block[%d]: %d\n", i, file_buffer[i]);
-
-
-
-    
-  }
-
-
-
-  free(file_buffer);
+  // re-organize: re-locate fragmented files' sectors into contiguous sectors
+  reorganize_file(files_sectors_buffer, file_size_buffer, file_buffer, file_name_buffer, file_count, total_sector_count);
+  
   dir_close(dir);
+
+  // free buffers
+  free(files_sectors_buffer);
+  free(file_buffer);
+  free(file_size_buffer);
+  free(file_inode_buffer);
   return 0;
 }
 
@@ -356,16 +375,15 @@ int fsutil_read_at(char *file_name, void *buffer, unsigned size, offset_t file_o
   return file_read_at(file_s, buffer, size, file_ofs);
 }
 
-bool file_is_fragmented(block_sector_t blocks[DIRECT_BLOCKS_COUNT]){
+bool file_is_fragmented(block_sector_t *blocks, int sector_count){
   int blockIndex = 0;
   int sectorGap;
 
   // traverse through blocks
-  while(blockIndex < DIRECT_BLOCKS_COUNT){
-    // printf("b1: %d, b2: %d\n", blocks[blockIndex], blocks[blockIndex + 1]);
-    if(blocks[blockIndex] != 0){
+  while(blockIndex < sector_count){
+    if(blocks[blockIndex] != 0 && blocks[blockIndex+1] != 0){
       sectorGap = blocks[blockIndex + 1] - blocks[blockIndex];
-      if(sectorGap > 3){
+      if(sectorGap > 3 || sectorGap < -3){
         return true;
       } 
     }
@@ -375,7 +393,7 @@ bool file_is_fragmented(block_sector_t blocks[DIRECT_BLOCKS_COUNT]){
 }
 
 // return the number of sectors taken by all files on current disk
-int get_size_of_files_on_disk(){
+int get_size_of_files_on_disk(int *file_count){
   struct dir *dir;
   struct file *file; 
   char fname[NAME_MAX + 1];
@@ -393,15 +411,111 @@ int get_size_of_files_on_disk(){
     }
 
     if (file != NULL && file->inode != NULL){
+      (*file_count)++;
       sector_count = bytes_to_sectors(file->inode->data.length); 
-      // printf("fname: %s, size: %d\n", fname, sector_count);
       total_sectors += sector_count; //get total number of files on hard drive
     }
   } 
 
   dir_close(dir);
-  // printf("tot: %d\n", total_sectors);
-
   return total_sectors;
 }
 
+// check if sector has already been released or not
+bool is_sector_free(int num_sector){
+  bool is_free = false;
+  if(bitmap_count(free_map, num_sector, 1, 0) == 1) is_free = true;
+  return is_free;
+}
+
+// re-organize file: content
+void reorganize_file(block_sector_t **files_sectors_buffer, int *file_size_buffer, struct file **file_buffer, char **file_name_buffer, int file_count, int total_sector_count){
+  struct file *file;
+  int file_size = 0; // by sector
+  char* read_buffer;
+  char* original_read_buffer;
+  bool is_allocated = false;
+  int *byte_read = 0;
+
+  read_buffer = calloc(file_count, BLOCK_SECTOR_SIZE*total_sector_count);
+  original_read_buffer = read_buffer; // save read_buffer starting point
+
+  byte_read = calloc(file_count, sizeof(int));
+
+  // read file contents before reallocate sectors        
+  for(int i = 0; i < file_count; i++){
+    file_size = file_size_buffer[i];
+    file = file_buffer[i];
+
+    // read each file and store to read_buffer before reset their blocks and inodes
+    byte_read[i] = file_read_at(file, read_buffer, file->inode->data.length, 0);
+    read_buffer += byte_read[i]; // avoid overwriting the previous file
+  }
+
+  // reallocate file sectors by changing #sector into contiguous
+  reorganize_file_sector_number(files_sectors_buffer, file_size_buffer, file_buffer, file_count);
+  read_buffer = original_read_buffer; // point read_buffer back to start
+
+  // write content to updated contiguous #sector
+  for(int i = 0; i < file_count; i++){
+    file = file_buffer[i];
+    file_size = file_size_buffer[i];
+ 
+    // write back to files after reorganizing their inodes and blocks
+    file_write_at(file, read_buffer, byte_read[i], 0);
+    read_buffer += byte_read[i]; // avoid overwriting the previous file
+
+    // allocate space on free-map
+    if(!is_allocated){
+      free_map_allocate(file_size + 1, &(file->inode->sector));
+      is_allocated = true;
+    }
+    is_allocated = false;
+  }
+
+  free(original_read_buffer);
+  return;
+}
+
+// re-organize file: change scattered sector number ot contiguous number
+void reorganize_file_sector_number(block_sector_t **files_sectors_buffer, int *file_size_buffer, struct file **file_buffer, int file_count){
+  struct file *file;
+  struct file *pre_file; 
+  int cur_file_sector_count = 0;
+  int pre_file_sector_count = 0;
+  int cur_file_end_index = 0;
+  int cur_file_start_index = 0;
+  bool reorganize_first_sector = false;
+  int j = 0;
+
+  for(int i = 0; i < file_count; i++){
+    file = file_buffer[i];
+    cur_file_sector_count = file_size_buffer[i];
+
+    //reorganize inode
+    if(i == 0) {
+      // first file, inode does not need to be updated  
+      file->inode->sector = file->inode->sector;
+    } else {
+      pre_file = file_buffer[i-1];
+      file->inode->sector = pre_file->inode->sector + pre_file_sector_count + 1; // file sector count exclude inode, hence need to plus 1
+    }
+
+    // get start index and end index of current file's sectors
+    cur_file_start_index += pre_file_sector_count;
+    cur_file_end_index = cur_file_sector_count + cur_file_start_index;
+
+    for(j = cur_file_start_index; j < cur_file_end_index; j++){
+      if(!reorganize_first_sector){
+        reorganize_first_sector = true;
+        *(files_sectors_buffer[j]) = file->inode->sector + 1;
+        continue;
+      }
+      *(files_sectors_buffer[j]) = *(files_sectors_buffer[j-1]) + 1; 
+    }
+    pre_file_sector_count = cur_file_sector_count; 
+    reorganize_first_sector = false;
+  }
+
+  return;
+}
