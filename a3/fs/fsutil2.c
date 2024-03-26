@@ -423,15 +423,30 @@ void recover(int flag) {
 
     size_t fm_size = bitmap_size(free_map);
 
+    struct inode_disk recovered_inode;
+    
     for (size_t i = 0; i < fm_size; i++) {
-      // If sector i is free, check if it contains an inode that can be recovered
       if (bitmap_test(free_map, i)) { 
+        // Read sector into inode structure
+        block_read(fs_device, i, &recovered_inode);
         
+        // Check if it's an inode and it's marked as deleted
+        if (recovered_inode.magic == INODE_MAGIC) {
+          // Create filename for recovered inode
+          char filename[NAME_MAX + 1];
+          snprintf(filename, sizeof(filename), "recovered0-%d", i);
+
+          // Add directory entry to root directory
+          struct dir *root_dir = dir_open_root();
+          if (!dir_add(root_dir, filename, i, false)) {
+            // Handle error: failed to add directory entry
+          }
+          dir_close(root_dir);
+        }
       }
     }
 
     free_map_close();  // Closes the free map
-
     /**
      * 1. Traverse all sectors in block
      * 2. Check if it's inode (through magic number)
@@ -439,8 +454,6 @@ void recover(int flag) {
      * 4. if deleted:
      *  4.1: create a file named 'recovered0-%d'
      *  4.2: link deleted inode to 'recovered0-%d'*/ 
-
-         
   } else if (flag == 1) { // recover all non-empty sectors
 
     // TODO
