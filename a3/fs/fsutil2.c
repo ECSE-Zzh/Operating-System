@@ -19,7 +19,6 @@
 
 #define BUFFER_SIZE 4096
 
-int min(int source_file_size, int free_space); //copy_in helper function
 int fsutil_read_at(char *file_name, void *buffer, unsigned size, offset_t file_ofs); //copy_out helper function
 bool file_is_fragmented(block_sector_t *blocks, int sector_count);
 //defragment helper functions
@@ -94,29 +93,42 @@ int copy_in(char *fname) {
 //----------------------------------------------SEPARATION----------------LINE-------------------------------------//
 
 int copy_out(char *fname) {
-  //copy the file on shell's hard dive to real hard drive with the same name
+  // Copy the file on shell's hard dive to real hard drive with the same name
   char* content_buffer;
   int shell_disk_file_size;
   int read;
   FILE* real_disk_file;
 
-  // read from to-be-copied file
+  // Read from to-be-copied file
   shell_disk_file_size = fsutil_size(fname); // get file size
-  content_buffer = (char *)malloc((shell_disk_file_size + 1) * sizeof(char));
+  if (shell_disk_file_size < 0) return handle_error(FILE_READ_ERROR);
+
+  content_buffer = (char *)malloc((shell_disk_file_size) * sizeof(char)); // "wb" write-byte for fopen() doesn't need the "+1"
+  if (content_buffer == NULL) return handle_error(FILE_READ_ERROR); 
+
   read = fsutil_read_at(fname, content_buffer, shell_disk_file_size, 0); // read from file offset 0
-  if(read == -1) return handle_error(FILE_READ_ERROR);
+  if(read == -1) {
+    free(content_buffer); 
+    return handle_error(FILE_READ_ERROR);
+  }
 
   //write to file on real hard drive
-  real_disk_file = fopen(fname, "w");// create a file on real hard drive with the same name
+  real_disk_file = fopen(fname, "wb"); 
   if (real_disk_file == NULL) {
     free(content_buffer);
     return handle_error(FILE_CREATION_ERROR);
   }
-  fwrite(content_buffer, sizeof(char), shell_disk_file_size, real_disk_file);
 
+  size_t written_bytes = fwrite(content_buffer, sizeof(char), shell_disk_file_size, real_disk_file);
+  // Check if all data was written
+  if (written_bytes < shell_disk_file_size) {   
+    fclose(real_disk_file);
+    free(content_buffer);
+    return handle_error(FILE_WRITE_ERROR);
+  }
+  
   fclose(real_disk_file);
   free(content_buffer);
-
   return 0;
 }
 
@@ -275,8 +287,33 @@ int defragment() {
   total_sector_count = get_size_of_files_on_disk(&file_count);
   // printf("total: %d\n", total_sector_count);
 
+  dir = dir_open_root();
+  // traverse the file system
+  while(dir_readdir(dir, fname)){
+    // get a file
+    file = get_file_by_fname(fname);
+    if(file == NULL){
+       file = filesys_open(fname);
+       if(file == NULL) return -1; // file name does not exist
+    }
+  }
+
   // allocate space for buffers
   files_sectors_buffer = calloc(total_sector_count, sizeof(block_sector_t*));
+
+  // copy all sectors of current file
+  files_sectors_buffer = 
+
+  // remove all files
+
+  // reorganize files
+
+  // copy back reorganized files to disk
+
+
+
+
+
   file_buffer = calloc(file_count, sizeof(struct file*));
   file_size_buffer = calloc(file_count, sizeof(int));
   file_name_buffer = calloc(file_count, sizeof(fname));
@@ -297,6 +334,7 @@ int defragment() {
       // if(sector_count > DIRECT_BLOCKS_COUNT) sector_count++; // add one for boundary block
 
       sector_not_done = sector_count;
+      
 
       has_indirect_block = false;
       has_doubly_indirect_block_sector = false;
@@ -381,7 +419,15 @@ int defragment() {
 void recover(int flag) {
   if (flag == 0) { // recover deleted inodes
 
-    // TODO
+    /**
+     * 1. Traverse all sectors in block
+     * 2. Check if it's inode (through magic number)
+     * 3. Check if deleted
+     * 4. if deleted:
+     *  4.1: create a file named 'recovered0-%d'
+     *  4.2: link deleted inode to 'recovered0-%d'*/ 
+
+         
   } else if (flag == 1) { // recover all non-empty sectors
 
     // TODO
@@ -392,10 +438,6 @@ void recover(int flag) {
 }
 
 //----------------------------------------------HELPER----FUNCTIONS----START----HERE-------------------------------------//
-
-int min(int source_file_size, int free_space) {
-  return (source_file_size < free_space) ? source_file_size : free_space;
-}
 
 int fsutil_read_at(char *file_name, void *buffer, unsigned size, offset_t file_ofs) {
   struct file *file_s = get_file_by_fname(file_name);
