@@ -416,9 +416,39 @@ int defragment() {
 }
 //----------------------------------------------SEPARATION----------------LINE-------------------------------------//
 
+// recover works, but it's not perfect. It's not able to recover the file content, only the file name.
 void recover(int flag) {
   if (flag == 0) { // recover deleted inodes
 
+    free_map_open();
+
+    size_t fm_size = bitmap_size(free_map);
+
+    struct inode_disk recovered_inode;
+    
+    for (size_t i = 0; i < fm_size; i++) {
+      if (bitmap_test(free_map, i)) { 
+        
+        recovered_inode = inode_open(i)->data; 
+        
+        // Check if it's an inode and it's marked as deleted
+        if (recovered_inode.magic == INODE_MAGIC) {
+          // Create filename for recovered inode
+          char filename[NAME_MAX + 1];
+          snprintf(filename, sizeof(filename), "recovered0-%d", i);
+
+          // Add directory entry to root directory
+          struct dir *root_dir = dir_open_root();
+          if (!dir_add(root_dir, filename, i, false)) {
+            printf("Could not add recovered file %s\n", filename);
+            return; // Exit if we can't add the file
+          }
+          dir_close(root_dir);
+        }
+      }
+    }
+
+    free_map_close();  // Closes the free map
     /**
      * 1. Traverse all sectors in block
      * 2. Check if it's inode (through magic number)
@@ -426,8 +456,6 @@ void recover(int flag) {
      * 4. if deleted:
      *  4.1: create a file named 'recovered0-%d'
      *  4.2: link deleted inode to 'recovered0-%d'*/ 
-
-         
   } else if (flag == 1) { // recover all non-empty sectors
 
     // TODO
