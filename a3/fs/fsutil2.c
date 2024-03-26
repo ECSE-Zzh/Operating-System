@@ -419,6 +419,19 @@ int defragment() {
 void recover(int flag) {
   if (flag == 0) { // recover deleted inodes
 
+    free_map_open();
+
+    size_t fm_size = bitmap_size(free_map);
+
+    for (size_t i = 0; i < fm_size; i++) {
+      // If sector i is free, check if it contains an inode that can be recovered
+      if (bitmap_test(free_map, i)) { 
+        
+      }
+    }
+
+    free_map_close();  // Closes the free map
+
     /**
      * 1. Traverse all sectors in block
      * 2. Check if it's inode (through magic number)
