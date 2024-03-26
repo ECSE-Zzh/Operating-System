@@ -439,7 +439,8 @@ void recover(int flag) {
           // Add directory entry to root directory
           struct dir *root_dir = dir_open_root();
           if (!dir_add(root_dir, filename, i, false)) {
-            // Handle error: failed to add directory entry
+            printf("Could not add recovered file %s\n", filename);
+            return; // Exit if we can't add the file
           }
           dir_close(root_dir);
         }
