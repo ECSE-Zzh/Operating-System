@@ -416,6 +416,7 @@ int defragment() {
 }
 //----------------------------------------------SEPARATION----------------LINE-------------------------------------//
 
+// recover works, but it's not perfect. It's not able to recover the file content, only the file name.
 void recover(int flag) {
   if (flag == 0) { // recover deleted inodes
 
