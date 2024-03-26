@@ -427,8 +427,8 @@ void recover(int flag) {
     
     for (size_t i = 0; i < fm_size; i++) {
       if (bitmap_test(free_map, i)) { 
-        // Read sector into inode structure
-        block_read(fs_device, i, &recovered_inode);
+        
+        recovered_inode = inode_open(i)->data; 
         
         // Check if it's an inode and it's marked as deleted
         if (recovered_inode.magic == INODE_MAGIC) {
