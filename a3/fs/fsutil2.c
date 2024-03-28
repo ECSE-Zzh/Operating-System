@@ -333,10 +333,6 @@ void recover(int flag) {
   } else if (flag == 2) {
       // Recover data past end of file
   }
-
-  if (!recovery_performed) {
-    printf("No recovery is performed.\n");
-  }
 }
 
 //----------------------------------------------HELPER----FUNCTIONS----START----HERE-------------------------------------//
