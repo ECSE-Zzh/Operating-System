@@ -312,11 +312,11 @@ void recover(int flag) {
             printf("ERROR: Could not open inode at sector %d.\n",sector);
             continue;
           }
-          if (!free_map_recover_inode_and_blocks(recovered_inode)) {
-            printf("ERROR: Failed to recover inode and its blocks at sector %d.\n", sector);
-            inode_close(recovered_inode);
-            continue;
-          }
+          // if (!free_map_recover_inode_and_blocks(recovered_inode)) {
+          //   printf("ERROR: Failed to recover inode and its blocks at sector %d.\n", sector);
+          //   inode_close(recovered_inode);
+          //   continue;
+          // }
           inode_close(recovered_inode);
           // Add the recovered file to the directory
           if (!dir_add(root, filenameBuffer, sector, potential_inode->is_dir)) {
@@ -517,7 +517,7 @@ void create_recovered_filename(char *buffer, int bufferSize, int flag, int secto
           break;
       case 2: // recovered hidden data
           // WARNING: Assuming sectorOrFileName is actually a pointer to a string (file name) in this case
-          snprintf(buffer, bufferSize, "recovered2-%s.txt", (char*)sectorOrFileName);
+          // snprintf(buffer, bufferSize, "recovered2-%s.txt", (char*)sectorOrFileName);
           break;
       default:
           printf("Invalid recovery type\n");
