@@ -114,7 +114,7 @@ int copy_out(char *fname) {
   }
 
   //write to file on real hard drive
-  real_disk_file = fopen(fname, "wb"); 
+  real_disk_file = fopen(fname, "ab"); 
   if (real_disk_file == NULL) {
     free(content_buffer);
     return handle_error(FILE_CREATION_ERROR);
