@@ -120,7 +120,7 @@ int copy_out(char *fname) {
     return handle_error(FILE_CREATION_ERROR);
   }
 
-  size_t written_bytes = fwrite(content_buffer, sizeof(char), read, real_disk_file);
+  size_t written_bytes = fwrite(content_buffer, sizeof(char), strlen(content_buffer), real_disk_file);
   // Check if all data was written
   if (written_bytes < shell_disk_file_size) {   
     fclose(real_disk_file);
