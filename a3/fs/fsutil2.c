@@ -57,7 +57,7 @@ int copy_in(char *fname) {
   }
 
   // create copied new file on shell's hard drive; give one block sector to it
-  if(!fsutil_create(fname, BLOCK_SECTOR_SIZE)){
+  if(!fsutil_create(fname, source_file_size)){
     fclose(source_file);
     return handle_error(FILE_CREATION_ERROR);
   }
