@@ -92,6 +92,7 @@ int copy_in(char *fname) {
   return 0;
 }
 //----------------------------------------------SEPARATION----------------LINE-------------------------------------//
+
 int copy_out(char *fname) {
   // Copy the file on shell's hard dive to real hard drive with the same name
   char* content_buffer;
@@ -106,7 +107,7 @@ int copy_out(char *fname) {
   content_buffer = (char *)malloc((shell_disk_file_size) * sizeof(char)); // "wb" write-byte for fopen() doesn't need the "+1"
   if (content_buffer == NULL) return handle_error(FILE_READ_ERROR); 
 
-  read = file_read_at(fname, content_buffer, shell_disk_file_size, 0); // read from file offset 0
+  read = fsutil_read_at(fname, content_buffer, shell_disk_file_size, 0); // read from file offset 0
   if(read == -1) {
     free(content_buffer); 
     return handle_error(FILE_READ_ERROR);
