@@ -204,9 +204,9 @@ void fragmentation_degree() {
 
   dir_close(dir);
 
-  // printf("fragmentable file: %d\n", fragmentable_file_count);
-  // printf("fragmented file: %d\n", fragmented_file_count);
-  printf("fragmentation degree: %f\n", (float)fragmented_file_count / (float)fragmentable_file_count);
+  printf("Num fragmentable files: %d\n", fragmentable_file_count);
+  printf("Num fragmented files: %d\n", fragmented_file_count);
+  printf("Fragmentation pct: %f\n", (float)fragmented_file_count / (float)fragmentable_file_count);
   return;
   }
 
