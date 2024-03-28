@@ -92,7 +92,6 @@ int copy_in(char *fname) {
   return 0;
 }
 //----------------------------------------------SEPARATION----------------LINE-------------------------------------//
-
 int copy_out(char *fname) {
   // Copy the file on shell's hard dive to real hard drive with the same name
   char* content_buffer;
@@ -104,10 +103,11 @@ int copy_out(char *fname) {
   shell_disk_file_size = fsutil_size(fname); // get file size
   if (shell_disk_file_size < 0) return handle_error(FILE_READ_ERROR); //2
 
-  content_buffer = (char *)malloc((shell_disk_file_size) * sizeof(char)); // "wb" write-byte for fopen() doesn't need the "+1"
+  content_buffer = (char *)malloc((shell_disk_file_size + 1) * sizeof(char)); // "wb" write-byte for fopen() doesn't need the "+1"
   if (content_buffer == NULL) return handle_error(FILE_READ_ERROR); 
 
-  read = fsutil_read_at(fname, content_buffer, shell_disk_file_size, 0); // read from file offset 0
+  read = file_read_at(fname, content_buffer, shell_disk_file_size, 0); // read from file offset 0
+  content_buffer[shell_disk_file_size] = '\0';
   if(read == -1) {
     free(content_buffer); 
     return handle_error(FILE_READ_ERROR);
@@ -120,7 +120,7 @@ int copy_out(char *fname) {
     return handle_error(FILE_CREATION_ERROR);
   }
 
-  size_t written_bytes = fwrite(content_buffer, sizeof(char), shell_disk_file_size, real_disk_file);
+  size_t written_bytes = fwrite(content_buffer, sizeof(char), shell_disk_file_size + 1, real_disk_file);
   // Check if all data was written
   if (written_bytes < shell_disk_file_size) {   
     fclose(real_disk_file);
