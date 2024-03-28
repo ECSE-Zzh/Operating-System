@@ -37,8 +37,8 @@ int copy_in(char *fname) {
   FILE* source_file;
   long source_file_size;
   long free_space;
-  char buf[BUFFER_SIZE]; // chunk size
-  size_t bytes_read;
+  char buf[BUFFER_SIZE];  // chunk size
+  size_t bytes_read = 0;
   long total_written = 0;
 
   source_file = fopen(fname, "rb"); // Open the file in binary mode
@@ -56,7 +56,7 @@ int copy_in(char *fname) {
     return handle_error(FILE_CREATION_ERROR);
   }
 
- // create copied new file on shell's hard drive; give one block sector to it
+  // create copied new file on shell's hard drive; give one block sector to it
   if(!fsutil_create(fname, BLOCK_SECTOR_SIZE)){
     fclose(source_file);
     return handle_error(FILE_CREATION_ERROR);
@@ -64,28 +64,29 @@ int copy_in(char *fname) {
 
   // Since problems are observed for writing large files; we write data into fs in chunks
   // Keep reading until EOF reached; 1 byte (char) each time
-  while ((bytes_read = fread(buf, 1, sizeof(buf), source_file)) > 0) {
+  while ((bytes_read = fread(buf, 1, BUFFER_SIZE-2, source_file)) > 0) {
+    buf[bytes_read] = '\0';
     if (free_space <= 0) break;
 
-  // there is space but not sufficient to copy in every byte
+    // there is space but not sufficient to copy in every byte
     if (bytes_read > free_space) bytes_read = free_space;
 
-  // Write the chunk
-    if (fsutil_write(fname, buf, bytes_read) == -1) {
+    // Write the chunk; +2 for proper functionality
+    if (fsutil_write(fname, buf, bytes_read + 2) == -1) {
       fclose(source_file);
-      return handle_error(FILE_WRITE_ERROR); // something wrong happened :(
+      return handle_error(FILE_WRITE_ERROR);  // something wrong happened :(
     }
 
-  // everything seems fine: accumulate the written bytes, update free space left
-      total_written += bytes_read;
-      free_space -= bytes_read;
+    // everything seems fine: accumulate the written bytes, update free space left
+    total_written += bytes_read;
+    free_space -= bytes_read;
   }
 
-    fclose(source_file);
+  fclose(source_file);
 
   // If not all data could be written, print a warning
   if (free_space <= 0 && total_written < source_file_size) {
-    printf("Warning: could only write %ld out of %ld bytes (reached end of file)\n", total_written, source_file_size);
+    printf("Warning: could only write %ld out of %ld bytes (reached end of disk space)\n", total_written, source_file_size);
   }
 
   return 0;
