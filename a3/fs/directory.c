@@ -373,3 +373,23 @@ block_sector_t dir_readdir_inode(struct dir *dir, char name[NAME_MAX + 1]) {
   }
   return -1;
 }
+
+/*User defined function*/
+/* Checks if an inode at inode_sector is referenced in the specified directory */
+bool is_inode_referenced_in_directory(struct dir* directory, block_sector_t inode_sector) {
+  char name[NAME_MAX + 1];
+  struct inode* inode = NULL;
+  directory->pos = 0; // IMPORTANT: reset the directory position to start
+  while (dir_readdir(directory, name)) {
+    if (!dir_lookup(directory, name, &inode)) {
+      continue; // Skip if lookup fails
+    }
+    if (inode_get_inumber(inode) == inode_sector) {
+      inode_close(inode);
+      return true; // Found the inode, it's referenced
+    }
+    inode_close(inode);
+  }
+
+  return false; // Inode not found in directory
+}

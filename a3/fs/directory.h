@@ -47,4 +47,6 @@ bool dir_remove(struct dir *, const char *name);
 bool dir_readdir(struct dir *, char name[NAME_MAX + 1]);
 block_sector_t dir_readdir_inode(struct dir *, char name[NAME_MAX + 1]);
 
+/*User defined*/
+bool is_inode_referenced_in_directory(struct dir* directory, block_sector_t inode_sector);
 #endif /* fs/directory.h */

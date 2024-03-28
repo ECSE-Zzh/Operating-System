@@ -5,7 +5,7 @@
 #include "filesys.h"
 #include "inode.h"
 #include <stdio.h>
-
+#include <stdlib.h>
 static struct file *free_map_file; /* Free map file. */
 struct bitmap *free_map;           /* Free map, one bit per sector. */
 
@@ -74,4 +74,44 @@ void free_map_create(void) {
     PANIC("can't open free map");
   if (!bitmap_write(free_map, free_map_file))
     PANIC("can't write free map");
+}
+
+/*User defined*/
+/* DEPRECATED: Mark a sector at sector as allocated in free bit map; used in the context of file recovery; prevent overwriting */
+// bool free_map_recover(block_sector_t sector) {
+//   bool success = true;
+//   if (!bitmap_test(free_map, sector)) {
+//     bitmap_set(free_map, sector, true);
+//     success = bitmap_write(free_map, free_map_file);
+//   }
+//   return success;
+// }
+
+/* Recover the inode sector but also all data sectors associated with it */
+bool free_map_recover_inode_and_blocks(struct inode *inode){
+  bool success = true;
+
+  // First, recover the inode sector itself
+  block_sector_t inode_sector = inode_get_inumber(inode);
+  if (!bitmap_test(free_map, inode_sector)) {
+      bitmap_set(free_map, inode_sector, true);
+      if (!bitmap_write(free_map, free_map_file)) {
+          return false; // Failure to write the bitmap
+      }
+  }
+
+  // Next, recover all data sectors associated with the inode
+  block_sector_t *data_sectors = get_inode_data_sectors(inode);
+  size_t num_sectors = bytes_to_sectors(inode_length(inode));
+  for (size_t i = 0; i < num_sectors; i++) {
+      if (!bitmap_test(free_map, data_sectors[i])) {
+          bitmap_set(free_map, data_sectors[i], true);
+      }
+  }
+  if (!bitmap_write(free_map, free_map_file)) {
+      success = false; // Failure to write the bitmap
+  }
+
+  free(data_sectors); // free the malloc
+  return success;
 }

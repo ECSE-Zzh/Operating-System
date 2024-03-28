@@ -190,3 +190,15 @@ offset_t file_tell(struct file *file) {
   ASSERT(file != NULL);
   return file->pos;
 }
+
+bool is_inode_referenced(block_sector_t inode) {
+  // File table traversal; 
+  // Aim to find out whether an inode is referenced by an existing file
+  struct list_elem *e = list_begin(&file_table);
+  struct file_table_entry *entry;
+  for (; e!= list_end(&file_table); e = list_next(e)) {
+    entry = list_entry(e, struct file_table_entry, elem);
+    if (entry->f->inode->sector != inode) return true;
+  }
+  return false;
+}

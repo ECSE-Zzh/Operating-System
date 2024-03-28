@@ -2,6 +2,7 @@
 #define FILESYS_FILE_H
 
 #include "off_t.h"
+#include "block.h"
 #include <stdbool.h>
 
 struct inode;
@@ -40,5 +41,8 @@ void file_allow_write(struct file *);
 void file_seek(struct file *, offset_t);
 offset_t file_tell(struct file *);
 offset_t file_length(struct file *);
+
+/*User defined helper function*/
+bool is_inode_referenced(block_sector_t inode);
 
 #endif /* fs/file.h */

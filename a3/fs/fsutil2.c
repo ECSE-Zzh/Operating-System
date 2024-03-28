@@ -21,12 +21,13 @@
 
 int fsutil_read_at(char *file_name, void *buffer, unsigned size, offset_t file_ofs); //copy_out helper function
 bool file_is_fragmented(block_sector_t *blocks, int sector_count);
+int copy_out_defragment(char *fname);
 //defragment helper functions
 int get_size_of_files_on_disk(int *file_count);
 bool is_sector_free(int num_sector);
 void reorganize_file(block_sector_t ** disk_sectors_buffer, int *file_size_buffer, struct file **file_buffer, char **file_name_buffer, int file_count, int total_sector_count);
 void reorganize_file_sector_number(block_sector_t ** disk_sectors_buffer, int *file_size_buffer, struct file **file_buffer, int file_count);
-
+void create_recovered_filename(char *buffer, int bufferSize, int flag, int sectorOrFileName);
 struct inode_indirect_block_sector {
   block_sector_t blocks[INDIRECT_BLOCKS_PER_SECTOR];
 };
@@ -37,8 +38,8 @@ int copy_in(char *fname) {
   FILE* source_file;
   long source_file_size;
   long free_space;
-  char buf[BUFFER_SIZE]; // chunk size
-  size_t bytes_read;
+  char buf[BUFFER_SIZE];  // chunk size
+  size_t bytes_read = 0;
   long total_written = 0;
 
   source_file = fopen(fname, "rb"); // Open the file in binary mode
@@ -56,36 +57,46 @@ int copy_in(char *fname) {
     return handle_error(FILE_CREATION_ERROR);
   }
 
- // create copied new file on shell's hard drive; give one block sector to it
-  if(!fsutil_create(fname, BLOCK_SECTOR_SIZE)){
+  // create copied new file on shell's hard drive; give size = file size on real hard drive
+  if(!fsutil_create(fname, source_file_size)){
     fclose(source_file);
     return handle_error(FILE_CREATION_ERROR);
   }
 
+  // if(!fsutil_create(fname, BLOCK_SECTOR_SIZE)){
+  //   fclose(source_file);
+  //   return handle_error(FILE_CREATION_ERROR);
+  // }
+
   // Since problems are observed for writing large files; we write data into fs in chunks
   // Keep reading until EOF reached; 1 byte (char) each time
-  while ((bytes_read = fread(buf, 1, sizeof(buf), source_file)) > 0) {
+  while ((bytes_read = fread(buf, 1, BUFFER_SIZE-2, source_file)) > 0) {
+    buf[bytes_read] = '\0';
     if (free_space <= 0) break;
 
-  // there is space but not sufficient to copy in every byte
+    // there is space but not sufficient to copy in every byte
     if (bytes_read > free_space) bytes_read = free_space;
 
-  // Write the chunk
-    if (fsutil_write(fname, buf, bytes_read) == -1) {
+    // Write the chunk; +1 for null terminator
+    // int byte_write = fsutil_write(fname, buf, bytes_read + 2);
+    // struct file *file = get_file_by_fname(fname);
+    // printf("file size: %d\n", file->inode->data.length);
+
+    if (fsutil_write(fname, buf, bytes_read + 1) == -1) {
       fclose(source_file);
-      return handle_error(FILE_WRITE_ERROR); // something wrong happened :(
+      return handle_error(FILE_WRITE_ERROR);  // something wrong happened :(
     }
 
-  // everything seems fine: accumulate the written bytes, update free space left
-      total_written += bytes_read;
-      free_space -= bytes_read;
+    // everything seems fine: accumulate the written bytes, update free space left
+    total_written += bytes_read;
+    free_space -= bytes_read;
   }
 
-    fclose(source_file);
+  fclose(source_file);
 
   // If not all data could be written, print a warning
   if (free_space <= 0 && total_written < source_file_size) {
-    printf("Warning: could only write %ld out of %ld bytes (reached end of file)\n", total_written, source_file_size);
+    printf("Warning: could only write %ld out of %ld bytes (reached end of disk space)\n", total_written, source_file_size);
   }
 
   return 0;
@@ -119,9 +130,9 @@ int copy_out(char *fname) {
     return handle_error(FILE_CREATION_ERROR);
   }
 
-  size_t written_bytes = fwrite(content_buffer, sizeof(char), shell_disk_file_size, real_disk_file);
+  size_t written_bytes = fwrite(content_buffer, sizeof(char), strlen(content_buffer), real_disk_file);
   // Check if all data was written
-  if (written_bytes < shell_disk_file_size) {   
+  if (written_bytes <  strlen(content_buffer)) {   
     fclose(real_disk_file);
     free(content_buffer);
     return handle_error(FILE_WRITE_ERROR);
@@ -131,6 +142,7 @@ int copy_out(char *fname) {
   free(content_buffer);
   return 0;
 }
+
 
 //----------------------------------------------SEPARATION----------------LINE-------------------------------------//
 
@@ -204,9 +216,9 @@ void fragmentation_degree() {
 
   dir_close(dir);
 
-  // printf("fragmentable file: %d\n", fragmentable_file_count);
-  // printf("fragmented file: %d\n", fragmented_file_count);
-  printf("fragmentation degree: %f\n", (float)fragmented_file_count / (float)fragmentable_file_count);
+  printf("Num fragmentable files: %d\n", fragmentable_file_count);
+  printf("Num fragmented files: %d\n", fragmented_file_count);
+  printf("Fragmentation pct: %f\n", (float)fragmented_file_count / (float)fragmentable_file_count);
   return;
   }
 
@@ -239,7 +251,7 @@ int defragment() {
     }
 
     if (file != NULL && file->inode != NULL) {
-      copy_out(fname);
+      copy_out_defragment(fname);
 
       // add file names to file_name_buffer
       if(file_index < file_count){
@@ -269,55 +281,67 @@ int defragment() {
 }
 
 //----------------------------------------------SEPARATION----------------LINE-------------------------------------//
-
-// recover works, but it's not perfect. It's not able to recover the file content, only the file name.
 void recover(int flag) {
-  if (flag == 0) { // recover deleted inodes
-
-    free_map_open();
-
-    size_t fm_size = bitmap_size(free_map);
-
-    struct inode_disk recovered_inode;
-    
-    for (size_t i = 0; i < fm_size; i++) {
-      if (bitmap_test(free_map, i)) { 
-        
-        recovered_inode = inode_open(i)->data; 
-        
-        // Check if it's an inode and it's marked as deleted
-        if (recovered_inode.magic == INODE_MAGIC) {
-          // Create filename for recovered inode
-          char filename[NAME_MAX + 1];
-          snprintf(filename, sizeof(filename), "recovered0-%d", i);
-
-          // Add directory entry to root directory
-          struct dir *root_dir = dir_open_root();
-          if (!dir_add(root_dir, filename, i, false)) {
-            printf("Could not add recovered file %s\n", filename);
-            return; // Exit if we can't add the file
+  char filenameBuffer[100]; // recovered file name
+  bool recovery_performed = false; // Track if recovery was performed
+  
+  if (flag == 0) { // Recover deleted inodes
+    struct block* hd = block_get_hd();
+    if (hd == NULL) {
+      printf("ERROR: Hard drive access failed.\n");
+      return;
+    }
+    char* buf = malloc(BLOCK_SECTOR_SIZE);
+    if (!buf) {
+      printf("Memory allocation failed in recover.\n");
+      return;
+    }
+    struct dir *root = dir_open_root();
+    // Start checking from sector 2; 0 for free map, 1 for root dir; ; -1 because last sector left for partition? (not sure, without -1 there is Kernel PANIC)
+    for (int sector = 2; sector < block_size(hd)-1; sector++) {
+      block_read(hd, sector, buf);    // read sector content
+      struct inode_disk* potential_inode = (struct inode_disk*) buf;  // cast to inode_disk type
+      if (potential_inode->magic == INODE_MAGIC) {
+        // Found a sector with inode data, now verify it's not part of active directories
+        if (!is_inode_referenced_in_directory(root, sector)) {
+          // printf("sector: %d\n", sector);
+          // Inode is not referenced; Recover the inode by creating a new directory entry
+          // Creating a file is copied from filesys_create()
+          create_recovered_filename(filenameBuffer, sizeof(filenameBuffer), flag, sector);
+          struct inode *recovered_inode = inode_open(sector);
+          if (recovered_inode == NULL) {
+            printf("ERROR: Could not open inode at sector %d.\n",sector);
+            continue;
           }
-          dir_close(root_dir);
+          if (!free_map_recover_inode_and_blocks(recovered_inode)) {
+            printf("ERROR: Failed to recover inode and its blocks at sector %d.\n", sector);
+            inode_close(recovered_inode);
+            continue;
+          }
+          inode_close(recovered_inode);
+          // Add the recovered file to the directory
+          if (!dir_add(root, filenameBuffer, sector, potential_inode->is_dir)) {
+            printf("ERROR: Could not add recovered file '%s' to root directory.\n", filenameBuffer);
+            continue;
+          }
+          printf("Recovered inode in sector %d\n", sector);
+          recovery_performed = true;
         }
       }
     }
+    dir_close(root);
+    free(buf);
+  } else if (flag == 1) {
+      // Recover all non-empty sectors
+  } else if (flag == 2) {
+      // Recover data past end of file
+  }
 
-    free_map_close();  // Closes the free map
-    /**
-     * 1. Traverse all sectors in block
-     * 2. Check if it's inode (through magic number)
-     * 3. Check if deleted
-     * 4. if deleted:
-     *  4.1: create a file named 'recovered0-%d'
-     *  4.2: link deleted inode to 'recovered0-%d'*/ 
-  } else if (flag == 1) { // recover all non-empty sectors
-
-    // TODO
-  } else if (flag == 2) { // data past end of file.
-
-    // TODO
+  if (!recovery_performed) {
+    printf("No recovery is performed.\n");
   }
 }
+
 
 //----------------------------------------------HELPER----FUNCTIONS----START----HERE-------------------------------------//
 
@@ -482,4 +506,63 @@ void reorganize_file_sector_number(block_sector_t ** disk_sectors_buffer, int *f
   }
 
   return;
+}
+
+/* Helps recover() formulate the recovered filename */
+void create_recovered_filename(char *buffer, int bufferSize, int flag, int sectorOrFileName) {
+  switch (flag) {
+      case 0: // recovered inode
+          snprintf(buffer, bufferSize, "recovered0-%d", sectorOrFileName);
+          break;
+      case 1: // recovered data block
+          snprintf(buffer, bufferSize, "recovered1-%d.txt", sectorOrFileName);
+          break;
+      case 2: // recovered hidden data
+          // WARNING: Assuming sectorOrFileName is actually a pointer to a string (file name) in this case
+          // snprintf(buffer, bufferSize, "recovered2-%s.txt", (char*)sectorOrFileName);
+          break;
+      default:
+          printf("Invalid recovery type\n");
+          buffer[0] = '\0'; // Set the buffer to an empty string to indicate error
+  }
+}
+
+int copy_out_defragment(char *fname) {
+  // Copy the file on shell's hard dive to real hard drive with the same name
+  char* content_buffer;
+  int shell_disk_file_size;
+  int read;
+  FILE* real_disk_file;
+
+  // Read from to-be-copied file
+  shell_disk_file_size = fsutil_size(fname); // get file size
+  if (shell_disk_file_size < 0) return handle_error(FILE_READ_ERROR); //2
+
+  content_buffer = (char *)malloc((shell_disk_file_size) * sizeof(char)); // "wb" write-byte for fopen() doesn't need the "+1"
+  if (content_buffer == NULL) return handle_error(FILE_READ_ERROR); 
+
+  read = fsutil_read_at(fname, content_buffer, shell_disk_file_size, 0); // read from file offset 0
+  if(read == -1) {
+    free(content_buffer); 
+    return handle_error(FILE_READ_ERROR);
+  }
+
+  //write to file on real hard drive
+  real_disk_file = fopen(fname, "wb"); 
+  if (real_disk_file == NULL) {
+    free(content_buffer);
+    return handle_error(FILE_CREATION_ERROR);
+  }
+
+  size_t written_bytes = fwrite(content_buffer, sizeof(char), read, real_disk_file);
+  // Check if all data was written
+  if (written_bytes <  strlen(content_buffer)) {   
+    fclose(real_disk_file);
+    free(content_buffer);
+    return handle_error(FILE_WRITE_ERROR);
+  }
+  
+  fclose(real_disk_file);
+  free(content_buffer);
+  return 0;
 }
