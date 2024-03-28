@@ -72,7 +72,7 @@ int copy_in(char *fname) {
     if (bytes_read > free_space) bytes_read = free_space;
 
     // Write the chunk; +2 for proper functionality
-    if (fsutil_write(fname, buf, bytes_read + 2) == -1) {
+    if (fsutil_write(fname, buf, bytes_read + 1) == -1) {
       fclose(source_file);
       return handle_error(FILE_WRITE_ERROR);  // something wrong happened :(
     }
