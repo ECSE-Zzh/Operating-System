@@ -285,51 +285,49 @@ void recover(int flag) {
   bool recovery_performed = false; // Track if recovery was performed
   
   if (flag == 0) { // Recover deleted inodes
-    struct block* hd = block_get_hd();
-    if (hd == NULL) {
-      printf("ERROR: Hard drive access failed.\n");
-      return;
-    }
-    char* buf = malloc(BLOCK_SECTOR_SIZE);
-    if (!buf) {
-      printf("Memory allocation failed in recover.\n");
-      return;
-    }
-    struct dir *root = dir_open_root();
-    // Start checking from sector 2; 0 for free map, 1 for root dir; ; -1 because last sector left for partition? (not sure, without -1 there is Kernel PANIC)
-    for (int sector = 2; sector < block_size(hd)-1; sector++) {
-      block_read(hd, sector, buf);    // read sector content
-      struct inode_disk* potential_inode = (struct inode_disk*) buf;  // cast to inode_disk type
-      if (potential_inode->magic == INODE_MAGIC) {
-        // Found a sector with inode data, now verify it's not part of active directories
-        if (!is_inode_referenced_in_directory(root, sector)) {
-          // printf("sector: %d\n", sector);
-          // Inode is not referenced; Recover the inode by creating a new directory entry
-          // Creating a file is copied from filesys_create()
-          create_recovered_filename(filenameBuffer, sizeof(filenameBuffer), flag, sector);
-          struct inode *recovered_inode = inode_open(sector);
-          if (recovered_inode == NULL) {
-            printf("ERROR: Could not open inode at sector %d.\n",sector);
-            continue;
+    free_map_open();
+
+    size_t fm_size = bitmap_size(free_map);
+
+    struct inode_disk recovered_inode; // disk structure inode
+    struct inode * inode; // in-memory inode
+    
+    for (int i = 0; i < fm_size; i++) {
+      if (!bitmap_test(free_map, i)) { 
+        
+        recovered_inode = inode_open(i)->data; 
+        inode = inode_open(i);
+        
+        
+        // Check if it's an inode and it's marked as deleted
+        if (inode != NULL && recovered_inode.magic == INODE_MAGIC) {
+          // Create filename for recovered inode
+          char filename[NAME_MAX + 1];
+          snprintf(filename, NAME_MAX + 1, "recovered0-%d", i);
+
+          // change removed flag
+          inode->removed = false; 
+          
+          // Add directory entry to root directorys
+          struct dir *root_dir = dir_open_root();
+          dir_add(root_dir,filename,i,false); 
+
+          block_sector_t *num_sectors;
+          num_sectors = get_inode_data_sectors(inode); // get all data sectors of inod
+
+          size_t num_sectors_int = bytes_to_sectors(inode->data.length); // get number of sectors
+
+          int j = 0;
+          while(j < num_sectors_int){
+            bitmap_flip(free_map, num_sectors[j]); // flip the bit in the free map
+            j++;
           }
-          // if (!free_map_recover_inode_and_blocks(recovered_inode)) {
-          //   printf("ERROR: Failed to recover inode and its blocks at sector %d.\n", sector);
-          //   inode_close(recovered_inode);
-          //   continue;
-          // }
-          inode_close(recovered_inode);
-          // Add the recovered file to the directory
-          if (!dir_add(root, filenameBuffer, sector, potential_inode->is_dir)) {
-            printf("ERROR: Could not add recovered file '%s' to root directory.\n", filenameBuffer);
-            continue;
-          }
-          printf("Recovered inode in sector %d\n", sector);
-          recovery_performed = true;
+          dir_close(root_dir);
         }
       }
     }
-    dir_close(root);
-    free(buf);
+
+    free_map_close();  // Closes the free map
   } else if (flag == 1) {
       // Recover all non-empty sectors
   } else if (flag == 2) {
