@@ -100,18 +100,18 @@ bool free_map_recover_inode_and_blocks(struct inode *inode){
       }
   }
 
-  // Next, recover all data sectors associated with the inode
-  block_sector_t *data_sectors = get_inode_data_sectors(inode);
-  size_t num_sectors = bytes_to_sectors(inode_length(inode));
-  for (size_t i = 0; i < num_sectors; i++) {
-      if (!bitmap_test(free_map, data_sectors[i])) {
-          bitmap_set(free_map, data_sectors[i], true);
-      }
-  }
-  if (!bitmap_write(free_map, free_map_file)) {
-      success = false; // Failure to write the bitmap
-  }
+  // // Next, recover all data sectors associated with the inode
+  // block_sector_t *data_sectors = get_inode_data_sectors(inode);
+  // size_t num_sectors = bytes_to_sectors(inode_length(inode));
+  // for (size_t i = 0; i < num_sectors; i++) {
+  //     if (!bitmap_test(free_map, data_sectors[i])) {
+  //         bitmap_set(free_map, data_sectors[i], true);
+  //     }
+  // }
+  // if (!bitmap_write(free_map, free_map_file)) {
+  //     success = false; // Failure to write the bitmap
+  // }
 
-  free(data_sectors); // free the malloc
+  // free(data_sectors); // free the malloc
   return success;
 }

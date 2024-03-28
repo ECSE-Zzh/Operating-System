@@ -341,7 +341,6 @@ void recover(int flag) {
   }
 }
 
-
 //----------------------------------------------HELPER----FUNCTIONS----START----HERE-------------------------------------//
 
 int fsutil_read_at(char *file_name, void *buffer, unsigned size, offset_t file_ofs) {
@@ -518,7 +517,7 @@ void create_recovered_filename(char *buffer, int bufferSize, int flag, int secto
           break;
       case 2: // recovered hidden data
           // WARNING: Assuming sectorOrFileName is actually a pointer to a string (file name) in this case
-          // snprintf(buffer, bufferSize, "recovered2-%s.txt", (char*)sectorOrFileName);
+          snprintf(buffer, bufferSize, "recovered2-%s.txt", (char*)sectorOrFileName);
           break;
       default:
           printf("Invalid recovery type\n");
