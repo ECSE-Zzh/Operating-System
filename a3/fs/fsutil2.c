@@ -92,57 +92,46 @@ int copy_in(char *fname) {
   return 0;
 }
 //----------------------------------------------SEPARATION----------------LINE-------------------------------------//
+
 int copy_out(char *fname) {
   // Copy the file on shell's hard dive to real hard drive with the same name
-  // char* content_buffer;
-  char content_buffer[BUFFER_SIZE];
+  char* content_buffer;
   int shell_disk_file_size;
   int read;
   FILE* real_disk_file;
-  struct file* file;
 
   // Read from to-be-copied file
   shell_disk_file_size = fsutil_size(fname); // get file size
   if (shell_disk_file_size < 0) return handle_error(FILE_READ_ERROR); //2
 
-  // content_buffer = (char *)malloc((shell_disk_file_size + 1) * sizeof(char)); // "wb" write-byte for fopen() doesn't need the "+1"
-  // if (content_buffer == NULL) return handle_error(FILE_READ_ERROR); 
-  
-  // create new file on real disk
-    //write to file on real hard drive
-  real_disk_file = fopen(fname, "wb"); 
-  if (real_disk_file == NULL) {
-    // free(content_buffer);
-    fclose(real_disk_file);
-    return handle_error(FILE_CREATION_ERROR);
-  }
+  content_buffer = (char *)malloc((shell_disk_file_size) * sizeof(char)); // "wb" write-byte for fopen() doesn't need the "+1"
+  if (content_buffer == NULL) return handle_error(FILE_READ_ERROR); 
 
-  file = get_file_by_fname(fname);
-  file->pos = 0;
-  while((read = fsutil_read(fname, content_buffer, BUFFER_SIZE-2)) > 0){
-    content_buffer[read] = '\0';
-    if (fwrite(content_buffer, sizeof(char), read+1, real_disk_file) < read+1) {   
-      fclose(real_disk_file);
-      // free(content_buffer);
-      return handle_error(FILE_WRITE_ERROR);
-    }
-  } 
-  file->pos = 0;
-  
-  // read from file offset 0
-  if(read < 0) {
-    // free(content_buffer); 
+  read = fsutil_read_at(fname, content_buffer, shell_disk_file_size, 0); // read from file offset 0
+  if(read == -1) {
+    free(content_buffer); 
     return handle_error(FILE_READ_ERROR);
   }
 
-  // size_t written_bytes = fwrite(content_buffer, sizeof(char), read+1, real_disk_file);
+  //write to file on real hard drive
+  real_disk_file = fopen(fname, "ab"); 
+  if (real_disk_file == NULL) {
+    free(content_buffer);
+    return handle_error(FILE_CREATION_ERROR);
+  }
+
+  size_t written_bytes = fwrite(content_buffer, sizeof(char), shell_disk_file_size, real_disk_file);
   // Check if all data was written
+  if (written_bytes < shell_disk_file_size) {   
+    fclose(real_disk_file);
+    free(content_buffer);
+    return handle_error(FILE_WRITE_ERROR);
+  }
   
   fclose(real_disk_file);
-  // free(content_buffer);
+  free(content_buffer);
   return 0;
 }
-
 
 //----------------------------------------------SEPARATION----------------LINE-------------------------------------//
 
