@@ -391,7 +391,8 @@ void recover(int flag) {
       printf("ERROR: Hard drive access failed.\n");
       return;
     }
-    char* buf = malloc(BLOCK_SECTOR_SIZE);
+    char* buf = (char *)malloc(BLOCK_SECTOR_SIZE + 1);
+    buf[BLOCK_SECTOR_SIZE] = '\0';
     if (!buf) {
       printf("Memory allocation failed in recover.\n");
       return;
@@ -479,7 +480,8 @@ void recover(int flag) {
       printf("ERROR: Hard drive access failed.\n");
       return;
     }
-    char* buf = malloc(BLOCK_SECTOR_SIZE);
+    char* buf = (char *)malloc(BLOCK_SECTOR_SIZE + 1);
+    buf[BLOCK_SECTOR_SIZE] = '\0';
     if (!buf) {
       printf("Memory allocation failed in recover.\n");
       return;
@@ -497,6 +499,7 @@ void recover(int flag) {
         fwrite(buf, sizeof(char), strlen(buf), recovered_file);
         // printf("buf len: %ld, buf free: %d\n", strlen(buf), bitmap_test(free_map, sector));
         recovery_performed = true;
+        fclose(recovered_file);
       }
     }
 
@@ -510,7 +513,9 @@ void recover(int flag) {
       printf("ERROR: Hard drive access failed.\n");
       return;
     }
-    char* buf = malloc(BLOCK_SECTOR_SIZE);
+    char* buf = (char *)malloc(BLOCK_SECTOR_SIZE + 1);
+    buf[BLOCK_SECTOR_SIZE] = '\0';
+
     if (!buf) {
       printf("Memory allocation failed in recover.\n");
       return;
@@ -568,7 +573,7 @@ void recover(int flag) {
                     return;
                 }
 
-                char* final_sector_buffer = malloc(BLOCK_SECTOR_SIZE);
+                char* final_sector_buffer = (char *)malloc(BLOCK_SECTOR_SIZE);
                 if (final_sector_buffer == NULL) {
                     printf("Memory allocation failed for final_sector_buffer.\n");
                     free(sector_buffer); // Free the memory allocated for sector_buffer
@@ -576,7 +581,8 @@ void recover(int flag) {
                     dir_close(root);
                     return;
                 }
-                char* hidden_data = malloc(BLOCK_SECTOR_SIZE);
+                char* hidden_data = (char *)malloc(BLOCK_SECTOR_SIZE + 1);
+                hidden_data[BLOCK_SECTOR_SIZE] = '\0';
                 if (hidden_data == NULL) {
                     printf("Memory allocation failed for hidden_data.\n");
                     free(final_sector_buffer);
@@ -599,6 +605,7 @@ void recover(int flag) {
                   hidden_data[index] = final_sector_buffer[j];
                   index++;
                 }
+                // printf("last sector: %d\n", sector_buffer[sector_count-1]);
                 // printf("hidden data: %s\n", hidden_data);
                 // printf("hidden char: %d\n", hidden_char);
                 // printf("offset: %d, msg_len: %ld\n", offset, strlen(hidden_data));
