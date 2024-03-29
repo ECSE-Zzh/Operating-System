@@ -505,7 +505,7 @@ void recover(int flag) {
                 int offset = BLOCK_SECTOR_SIZE - hidden_char;
                 int index = 0;
                 int msg_len = 0;
-                for(int j = offset; j < hidden_char; j++){
+                for(int j = offset+1; j < hidden_char; j++){
                   hidden_data[index] = final_sector_buffer[j];
                   if(final_sector_buffer[j] != '\0') msg_len++;
                   index++;
