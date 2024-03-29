@@ -614,7 +614,7 @@ void recover(int flag) {
                 if(strlen(hidden_data) > 0){
                   // create_recovered_filename(filenameBuffer, sizeof(filenameBuffer), flag, fname);
                   char filename[100];
-                  snprintf(filename, sizeof(filename), "recovered2-%s.txt", fname);
+                  snprintf(filename, 100, "recovered2-%s.txt", fname);
                   recovered_file = fopen(filename, "wb");
                   if (recovered_file == NULL) {
                       printf("Failed to open recovered file for writing.\n");
