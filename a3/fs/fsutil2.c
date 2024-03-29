@@ -492,7 +492,7 @@ void recover(int flag) {
     // Start checking from sector 4; 0 for free map, 1 for root dir; ; -1 because last sector left for partition? (not sure, without -1 there is Kernel PANIC)
     for (int sector = 4; sector < block_size(hd)-1; sector++) {
       block_read(hd, sector, buf);    // read sector content
-      if(!bitmap_test(free_map, sector) && strlen(buf) != 0){
+      if(bitmap_test(free_map, sector) && strlen(buf) != 0){
         // if sector is not null and yet marked as free: recover
         create_recovered_filename(filenameBuffer, sizeof(filenameBuffer), flag, sector);
         recovered_file = fopen(filenameBuffer, "wb");
