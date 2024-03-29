@@ -514,8 +514,8 @@ void recover(int flag) {
                 // found hidden data
                 if(msg_len > 0){
                   // create_recovered_filename(filenameBuffer, sizeof(filenameBuffer), flag, fname);
-                  char filename[NAME_MAX + 1];
-                  snprintf(filename, NAME_MAX + 1 + 16, "recovered2-%s.txt", fname);
+                  char filename[100];
+                  snprintf(filename, sizeof(filename), "recovered2-%s.txt", fname);
                   recovered_file = fopen(filename, "wb");
                   fwrite(hidden_data, sizeof(char), msg_len, recovered_file);
                   recovery_performed = true;
