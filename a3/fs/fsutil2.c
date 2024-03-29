@@ -43,7 +43,7 @@ int copy_in(char *fname) {
   long total_written = 0;
 
   source_file = fopen(fname, "rb"); // Open the file in binary mode
-  if(source_file == NULL) return handle_error(BAD_COMMAND);
+  if(source_file == NULL) return 7; // BAD_COMMAND;
 
   // determine total source file size
   fseek(source_file, 0, SEEK_END);
@@ -51,25 +51,34 @@ int copy_in(char *fname) {
   rewind(source_file);
 
   // get free space (byte) on hard drive
-  free_space = fsutil_freespace()*BLOCK_SECTOR_SIZE; 
+  // free_space = fsutil_freespace()*BLOCK_SECTOR_SIZE; 
+  if(source_file_size <= BLOCK_SECTOR_SIZE*DIRECT_BLOCKS_COUNT){
+    //only used direct blocks
+    free_space = (fsutil_freespace() - 1)*BLOCK_SECTOR_SIZE; // 1 block for inode
+  } else if (BLOCK_SECTOR_SIZE*DIRECT_BLOCKS_COUNT < source_file_size && source_file_size <= (DIRECT_BLOCKS_COUNT+INDIRECT_BLOCKS_PER_SECTOR)*BLOCK_SECTOR_SIZE){
+    free_space = (fsutil_freespace() - 1 - 1)*BLOCK_SECTOR_SIZE; // 1 block for inode, 1 for an indirect block
+  } else if (source_file_size >  (DIRECT_BLOCKS_COUNT+INDIRECT_BLOCKS_PER_SECTOR)*BLOCK_SECTOR_SIZE){
+    free_space = (fsutil_freespace() - 1 - 1 - 1 - 14)*BLOCK_SECTOR_SIZE; // 1 block for inode, 1 for an indirect block, 1 for doubly indirect block, 14 for indirect blocks
+  }
+
+
   if (free_space <= 0) {
     fclose(source_file);
-    return handle_error(FILE_CREATION_ERROR);
+    return 9; // FILE_CREATION_ERROR
   }
 
   // create copied new file on shell's hard drive; give size = file size on real hard drive
   if(source_file_size < BLOCK_SECTOR_SIZE){
     if(!fsutil_create(fname, source_file_size)){
       fclose(source_file);
-      return handle_error(FILE_CREATION_ERROR);
+      return 9; // FILE_CREATION_ERROR
     }
   } else {
     if(!fsutil_create(fname, BLOCK_SECTOR_SIZE)){
       fclose(source_file);
-      return handle_error(FILE_CREATION_ERROR);
+      return 9; // FILE_CREATION_ERROR
     }
   }
-
 
   // Since problems are observed for writing large files; we write data into fs in chunks
   // Keep reading until EOF reached; 1 byte (char) each time
@@ -87,7 +96,7 @@ int copy_in(char *fname) {
 
     if (fsutil_write(fname, buf, bytes_read + 1) == -1) {
       fclose(source_file);
-      return handle_error(FILE_WRITE_ERROR);  // something wrong happened :(
+      return 11; // FILE_WRITE_ERROR something wrong happened :(
     }
 
     // everything seems fine: accumulate the written bytes, update free space left
@@ -493,23 +502,58 @@ void recover(int flag) {
 
               //check for hidden data
               int hidden_char = (sector_count)*BLOCK_SECTOR_SIZE - file_byte_size; 
+              // printf("size byte: %d\n", file_byte_size);
               if(hidden_char != 0){
-                // read last sector content
+                // Allocate memory for sector_buffer and check for allocation success
                 block_sector_t* sector_buffer = calloc(sector_count, sizeof(block_sector_t));
+                if (sector_buffer == NULL) {
+                    printf("Memory allocation failed for sector_buffer.\n");
+                    free(buf); // Free previously allocated memory
+                    dir_close(root);
+                    return;
+                }
+
+                // Retrieve inode data sectors and check for success
                 sector_buffer = get_inode_data_sectors(file->inode);
+                if (sector_buffer == NULL) {
+                    printf("Failed to retrieve inode data sectors.\n");
+                    free(sector_buffer); // Free the memory allocated for sector_buffer
+                    free(buf);
+                    dir_close(root);
+                    return;
+                }
+
                 char* final_sector_buffer = malloc(BLOCK_SECTOR_SIZE);
+                if (final_sector_buffer == NULL) {
+                    printf("Memory allocation failed for final_sector_buffer.\n");
+                    free(sector_buffer); // Free the memory allocated for sector_buffer
+                    free(buf);
+                    dir_close(root);
+                    return;
+                }
                 char* hidden_data = malloc(BLOCK_SECTOR_SIZE);
+                if (hidden_data == NULL) {
+                    printf("Memory allocation failed for hidden_data.\n");
+                    free(final_sector_buffer);
+                    free(sector_buffer); // Free the memory allocated for sector_buffer
+                    free(buf);
+                    dir_close(root);
+                    return;
+                }
                 block_read(hd, sector_buffer[sector_count-1], final_sector_buffer);  // read sector content
 
                 // copy hidden data
-                int offset = BLOCK_SECTOR_SIZE - hidden_char;
+                int offset = BLOCK_SECTOR_SIZE - 1 - hidden_char;
                 int index = 0;
                 int msg_len = 0;
-                for(int j = offset+1; j < hidden_char; j++){
+                for(int j = offset; j < offset+1+hidden_char; j++){
                   hidden_data[index] = final_sector_buffer[j];
                   if(final_sector_buffer[j] != '\0') msg_len++;
                   index++;
                 }
+                // printf("hidden data: %s\n", hidden_data);
+                // printf("hidden char: %d\n", hidden_char);
+                // printf("offset: %d, msg_len: %d\n", offset, msg_len);
 
                 // found hidden data
                 if(msg_len > 0){
@@ -517,8 +561,18 @@ void recover(int flag) {
                   char filename[100];
                   snprintf(filename, sizeof(filename), "recovered2-%s.txt", fname);
                   recovered_file = fopen(filename, "wb");
+                  if (recovered_file == NULL) {
+                      printf("Failed to open recovered file for writing.\n");
+                      free(hidden_data);
+                      free(final_sector_buffer);
+                      free(sector_buffer);
+                      free(buf);
+                      dir_close(root);
+                      return;
+                  }
                   fwrite(hidden_data, sizeof(char), msg_len, recovered_file);
                   recovery_performed = true;
+                  fclose(recovered_file);
                 }
 
                 free(sector_buffer);
@@ -534,8 +588,8 @@ void recover(int flag) {
     }     
     dir_close(root);
     free(buf);
-
   }
+
 }
 
 
