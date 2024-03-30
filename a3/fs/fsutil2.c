@@ -595,14 +595,11 @@ void recover(int flag) {
                 block_read(hd, sector_buffer[sector_count-1], final_sector_buffer);  // read sector content
 
                 // copy hidden data
-                int offset = BLOCK_SECTOR_SIZE - 1 - hidden_char;
+                int offset = BLOCK_SECTOR_SIZE - (hidden_char-1);
                 int index = 0;
                 int msg_len = 0;
-                for(int j = offset+2; j < offset+1+hidden_char; j++){
-                  if(final_sector_buffer[j] != '\0'){
-                    // hidden_data[index] = final_sector_buffer[j];
-                    msg_len++;
-                  }
+                for(int j = offset; j < offset+1+hidden_char; j++){
+                  if(final_sector_buffer[j] != '\0') msg_len++;
                   hidden_data[index] = final_sector_buffer[j];
                   index++;
                 }
