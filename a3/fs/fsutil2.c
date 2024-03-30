@@ -625,7 +625,7 @@ void recover(int flag) {
                       dir_close(root);
                       return;
                   }
-                  fwrite(hidden_data, sizeof(char), strlen(hidden_data) , recovered_file);
+                  fwrite(hidden_data, sizeof(char), msg_len , recovered_file);
                   recovery_performed = true;
                   fclose(recovered_file);
                 }
