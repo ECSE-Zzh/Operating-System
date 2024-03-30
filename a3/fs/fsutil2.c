@@ -229,7 +229,11 @@ void fragmentation_degree() {
 
   printf("Num fragmentable files: %d\n", fragmentable_file_count);
   printf("Num fragmented files: %d\n", fragmented_file_count);
-  printf("Fragmentation pct: %f\n", (float)fragmented_file_count / (float)fragmentable_file_count);
+  if(fragmentable_file_count == 0){
+    printf("Fragmentation pct: %f\n", 0.0);
+  } else {
+    printf("Fragmentation pct: %f\n", (float)fragmented_file_count / (float)fragmentable_file_count);
+  }
   return;
   }
 
