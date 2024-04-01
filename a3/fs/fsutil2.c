@@ -17,7 +17,7 @@
 #include <unistd.h>
 #include "../interpreter.h"
 
-#define BUFFER_SIZE 4096
+#define BUFFER_SIZE 4097
 
 int fsutil_read_at(char *file_name, void *buffer, unsigned size, offset_t file_ofs); //copy_out helper function
 bool file_is_fragmented(block_sector_t *blocks, int sector_count);
@@ -31,6 +31,8 @@ struct inode_indirect_block_sector {
 };
 
 //----------------------------------------------SEPARATION----------------LINE-------------------------------------//
+// Copy the file on real hard dive into the shell's hard drive with the same name in the root directory
+// Check free space in while loop
 // Copy the file on real hard dive into the shell's hard drive with the same name in the root directory
 int copy_in(char *fname) {
   FILE* source_file;
@@ -49,20 +51,15 @@ int copy_in(char *fname) {
   rewind(source_file);
 
   // get free space (byte) on hard drive
-  // free_space = fsutil_freespace()*BLOCK_SECTOR_SIZE; 
-  if(source_file_size <= BLOCK_SECTOR_SIZE*DIRECT_BLOCKS_COUNT){
-    free_space = (fsutil_freespace() - 1)*BLOCK_SECTOR_SIZE; // -1 block for inode
-  } else if (BLOCK_SECTOR_SIZE*DIRECT_BLOCKS_COUNT < source_file_size && source_file_size <= (DIRECT_BLOCKS_COUNT+INDIRECT_BLOCKS_PER_SECTOR)*BLOCK_SECTOR_SIZE){
-    free_space = (fsutil_freespace() - 1 - 1)*BLOCK_SECTOR_SIZE; // -1 block for inode, -1 for an indirect block
-  } else if (source_file_size >  (DIRECT_BLOCKS_COUNT+INDIRECT_BLOCKS_PER_SECTOR)*BLOCK_SECTOR_SIZE){
-    free_space = (fsutil_freespace() - 1 - 1 - 1 - 14)*BLOCK_SECTOR_SIZE; // -1 block for inode, -1 for an indirect block, -1 for doubly indirect block, -14 for indirect blocks
-  }
+  free_space = fsutil_freespace()*BLOCK_SECTOR_SIZE;
+  // printf("Free space detected in copy_in: %ld bytes\n", free_space);
 
 
   if (free_space <= 0) {
     fclose(source_file);
     return 9; // FILE_CREATION_ERROR
   }
+
 
   // create copied new file on shell's hard drive
   if(source_file_size < BLOCK_SECTOR_SIZE){
@@ -81,22 +78,33 @@ int copy_in(char *fname) {
 
   // Since problems are observed for writing large files; we write data into fs in chunks
   // Keep reading until EOF reached; 1 byte (char) each time
-  while ((bytes_read = fread(buf, 1, BUFFER_SIZE-2, source_file)) > 0) {
+  long bytes_written = 0;
+  while ((bytes_read = fread(buf, 1, BUFFER_SIZE-1, source_file)) > 0) {
     buf[bytes_read] = '\0';
+    // IMPORTANT: Dynamically checking free space instead of manually adjust it
+    free_space = fsutil_freespace()*BLOCK_SECTOR_SIZE;
     if (free_space <= 0) break;
 
+
     // there is space but not sufficient to copy in every byte
-    if (bytes_read > free_space) bytes_read = free_space;
+    if (bytes_read > free_space){
+      bytes_read = free_space;
+    }
+    // printf("bytes_read: %ld. free: %ld\n", bytes_read, free_space);
+
 
     // Write the chunk; +1 for null terminator
-    if (fsutil_write(fname, buf, bytes_read + 1) == -1) {
+    if ((bytes_written = fsutil_write(fname, buf, bytes_read+1)) == -1) {
       fclose(source_file);
       return 11; // FILE_WRITE_ERROR something wrong happened :(
     }
+    // printf("bytes_written: %d\n", bytes_written);
 
-    // everything seems fine: accumulate the written bytes, update free space left
-    total_written += bytes_read;
-    free_space -= bytes_read;
+
+    // everything seems fine: accumulate the written bytes, DEPRECATED: update free space left
+    // total_written += bytes_written;
+    total_written += bytes_written;
+    // printf("bytes_written = %ld; total_written = %ld\n", bytes_written, total_written);
   }
 
   fclose(source_file);
@@ -108,6 +116,7 @@ int copy_in(char *fname) {
 
   return 0;
 }
+
 //----------------------------------------------SEPARATION----------------LINE-------------------------------------//
 
 int copy_out(char *fname) {
