@@ -22,6 +22,7 @@
 int fsutil_read_at(char *file_name, void *buffer, unsigned size, offset_t file_ofs); //copy_out helper function
 bool file_is_fragmented(block_sector_t *blocks, int sector_count);
 int copy_out_defragment(char *fname);
+int copy_in_defragment(char *fname); 
 //defragment helper functions
 int get_size_of_files_on_disk(int *file_count);
 void create_recovered_filename(char *buffer, int bufferSize, int flag, int sectorOrFileName);
@@ -306,7 +307,7 @@ int defragment() {
   for(int i  = 0; i < file_count; i++){
     memset(fname, 0, sizeof(fname));
     strcpy(fname, file_name_buffer[i]);
-    copy_in(fname);
+    copy_in_defragment(fname);
   } 
 
   chdir(cwd);
@@ -663,6 +664,89 @@ int copy_out_defragment(char *fname) {
   free(content_buffer);
   return 0;
 }
+
+int copy_in_defragment(char *fname) {
+  FILE* source_file;
+  long source_file_size;
+  long free_space;
+  char buf[BUFFER_SIZE];  // chunk size
+  size_t bytes_read = 0;
+  long total_written = 0;
+
+  source_file = fopen(fname, "rb"); // Open the file in binary mode
+  if(source_file == NULL) return 7; // BAD_COMMAND;
+
+  // determine total source file size
+  fseek(source_file, 0, SEEK_END);
+  source_file_size = ftell(source_file);
+  rewind(source_file);
+
+  // get free space (byte) on hard drive
+  free_space = fsutil_freespace()*BLOCK_SECTOR_SIZE;
+  // printf("Free space detected in copy_in: %ld bytes\n", free_space);
+
+
+  if (free_space <= 0) {
+    fclose(source_file);
+    return 9; // FILE_CREATION_ERROR
+  }
+
+  // create copied new file on shell's hard drive
+  if(source_file_size < BLOCK_SECTOR_SIZE){
+    // when source_file_size < BLOCK_SECTOR_SIZE, create a file with size = source file size
+    // avoid printing null when doing "cat"
+    if(!fsutil_create(fname, source_file_size)){
+      fclose(source_file);
+      return 9; // FILE_CREATION_ERROR
+    }
+  } else {
+    if(!fsutil_create(fname, BLOCK_SECTOR_SIZE)){
+      fclose(source_file);
+      return 9; // FILE_CREATION_ERROR
+    }
+  }
+
+  // Since problems are observed for writing large files; we write data into fs in chunks
+  // Keep reading until EOF reached; 1 byte (char) each time
+  long bytes_written = 0;
+  while ((bytes_read = fread(buf, 1, BUFFER_SIZE-1, source_file)) > 0) {
+    buf[bytes_read] = '\0';
+    // IMPORTANT: Dynamically checking free space instead of manually adjust it
+    free_space = fsutil_freespace()*BLOCK_SECTOR_SIZE;
+    if (free_space <= 0) break;
+
+
+    // there is space but not sufficient to copy in every byte
+    if (bytes_read > free_space){
+      bytes_read = free_space;
+    }
+    // printf("bytes_read: %ld. free: %ld\n", bytes_read, free_space);
+
+
+    // Write the chunk; +1 for null terminator
+    if ((bytes_written = fsutil_write(fname, buf, bytes_read+1)) == -1) {
+      fclose(source_file);
+      return 11; // FILE_WRITE_ERROR something wrong happened :(
+    }
+    // printf("bytes_written: %d\n", bytes_written);
+
+
+    // everything seems fine: accumulate the written bytes, DEPRECATED: update free space left
+    // total_written += bytes_written;
+    total_written += bytes_written;
+    // printf("bytes_written = %ld; total_written = %ld\n", bytes_written, total_written);
+  }
+
+  fclose(source_file);
+
+  // If not all data could be written, print a warning
+  if (free_space <= 0 && total_written < source_file_size) {
+    printf("Warning: could only write %ld out of %ld bytes (reached end of disk space)\n", total_written, source_file_size);
+  }
+
+  return 0;
+}
+
 
 /* Checks if a data block is referenced in the specified directory; assume data_sector is a data block */
 bool is_data_referenced_in_directory(struct dir* directory, block_sector_t data_sector) {
