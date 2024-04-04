@@ -17,12 +17,11 @@
 #include <unistd.h>
 #include "../interpreter.h"
 
-#define BUFFER_SIZE 4097
+#define BUFFER_SIZE 4096
 
 int fsutil_read_at(char *file_name, void *buffer, unsigned size, offset_t file_ofs); //copy_out helper function
 bool file_is_fragmented(block_sector_t *blocks, int sector_count);
 int copy_out_defragment(char *fname);
-int copy_in_defragment(char *fname);
 //defragment helper functions
 int get_size_of_files_on_disk(int *file_count);
 void create_recovered_filename(char *buffer, int bufferSize, int flag, int sectorOrFileName);
@@ -35,11 +34,11 @@ struct inode_indirect_block_sector {
 // Copy the file on real hard dive into the shell's hard drive with the same name in the root directory
 int copy_in(char *fname) {
   FILE* source_file;
-  long source_file_size;
-  long free_space;
-  char buf[BUFFER_SIZE];  // chunk size
-  size_t bytes_read = 0;
-  long total_written = 0;
+  int source_file_size = 0;
+  int free_space = 0;
+  // size_t bytes_read = 0;
+  // long total_written = 0;
+  int destination_file_size = 0;
 
   source_file = fopen(fname, "rb"); // Open the file in binary mode
   if(source_file == NULL) return 7; // BAD_COMMAND;
@@ -49,71 +48,88 @@ int copy_in(char *fname) {
   source_file_size = ftell(source_file);
   rewind(source_file);
 
+  char buf[source_file_size+1];
+
   // get free space (byte) on hard drive
   free_space = fsutil_freespace()*BLOCK_SECTOR_SIZE;
+  // int free_space_inode = (fsutil_freespace() - 1)*BLOCK_SECTOR_SIZE; // -1 for inode block
   // printf("Free space detected in copy_in: %ld bytes\n", free_space);
-
 
   if (free_space <= 0) {
     fclose(source_file);
     return 9; // FILE_CREATION_ERROR
   }
 
+  fread(buf, 1, source_file_size, source_file);
+  buf[source_file_size] = '\0';
 
-  // create copied new file on shell's hard drive
-  if(source_file_size < BLOCK_SECTOR_SIZE){
-    // when source_file_size < BLOCK_SECTOR_SIZE, create a file with size = source file size
-    // avoid printing null when doing "cat"
-    if(!fsutil_create(fname, source_file_size)){
-      fclose(source_file);
-      return 9; // FILE_CREATION_ERROR
-    }
-  } else {
-    if(!fsutil_create(fname, BLOCK_SECTOR_SIZE)){
-      fclose(source_file);
-      return 9; // FILE_CREATION_ERROR
-    }
+  destination_file_size = source_file_size + 1;
+  if(free_space < source_file_size + 1 ){
+    destination_file_size = (fsutil_freespace() - 1)*BLOCK_SECTOR_SIZE;
+    printf("Warning: could only write %d out of %d bytes (reached end of disk space)\n", destination_file_size, source_file_size);
   }
 
-  // Since problems are observed for writing large files; we write data into fs in chunks
-  // Keep reading until EOF reached; 1 byte (char) each time
-  long bytes_written = 0;
-  while ((bytes_read = fread(buf, 1, BUFFER_SIZE-1, source_file)) > 0) {
-    buf[bytes_read] = '\0';
-    // IMPORTANT: Dynamically checking free space instead of manually adjust it
-    free_space = fsutil_freespace()*BLOCK_SECTOR_SIZE;
-    if (free_space <= 0) break;
+  if(!fsutil_create(fname, destination_file_size)){
+    fclose(source_file);
+    return 9; // FILE_CREATION_ERROR
+  }
 
-
-    // there is space but not sufficient to copy in every byte
-    if (bytes_read > free_space){
-      bytes_read = free_space;
-    }
-    // printf("bytes_read: %ld. free: %ld\n", bytes_read, free_space);
-
-
-    // Write the chunk; +1 for null terminator
-    if ((bytes_written = fsutil_write(fname, buf, bytes_read+1)) == -1) {
-      fclose(source_file);
-      return 11; // FILE_WRITE_ERROR something wrong happened :(
-    }
-    // printf("bytes_written: %d\n", bytes_written);
-
-
-    // everything seems fine: accumulate the written bytes, DEPRECATED: update free space left
-    // total_written += bytes_written;
-    total_written += bytes_written;
-    // printf("bytes_written = %ld; total_written = %ld\n", bytes_written, total_written);
+  if (fsutil_write(fname, buf, destination_file_size) == -1) {
+    fclose(source_file);
+    return 11; // FILE_WRITE_ERROR something wrong happened :(
   }
 
   fclose(source_file);
 
-  // If not all data could be written, print a warning
-  if (free_space <= 0 && total_written < source_file_size) {
-    printf("Warning: could only write %ld out of %ld bytes (reached end of disk space)\n", total_written, source_file_size);
-  }
-
+  // // If not all data could be written, print a warning
+  // if (free_space <= 0 && total_written < source_file_size) {
+  //   printf("Warning: could only write %ld out of %ld bytes (reached end of disk space)\n", total_written, source_file_size);
+  // }
   return 0;
+  // create copied new file on shell's hard drive
+  // if(source_file_size < BLOCK_SECTOR_SIZE){
+  //   // when source_file_size < BLOCK_SECTOR_SIZE, create a file with size = source file size
+  //   // avoid printing null when doing "cat"
+  //   if(!fsutil_create(fname, source_file_size)){
+  //     fclose(source_file);
+  //     return 9; // FILE_CREATION_ERROR
+  //   }
+  // } else {
+  //   if(!fsutil_create(fname, BLOCK_SECTOR_SIZE)){
+  //     fclose(source_file);
+  //     return 9; // FILE_CREATION_ERROR
+  //   }
+  // }
+
+  // Since problems are observed for writing large files; we write data into fs in chunks
+  // Keep reading until EOF reached; 1 byte (char) each time
+  // long bytes_written = 0;
+  // while ((bytes_read = fread(buf, 1, BUFFER_SIZE-1, source_file)) > 0) {
+  //   buf[bytes_read] = '\0';
+  //   // IMPORTANT: Dynamically checking free space instead of manually adjust it
+  //   free_space = (fsutil_freespace() - 1)*BLOCK_SECTOR_SIZE;
+  //   if (free_space <= 0) break;
+
+  //   // there is space but not sufficient to copy in every byte
+  //   if (bytes_read > free_space){
+  //     bytes_read = free_space;
+  //   }
+  //   // printf("bytes_read: %ld. free: %ld\n", bytes_read, free_space);
+
+
+  //   // Write the chunk; +1 for null terminator
+  //   if ((bytes_written = fsutil_write(fname, buf, bytes_read+1)) == -1) {
+  //     fclose(source_file);
+  //     return 11; // FILE_WRITE_ERROR something wrong happened :(
+  //   }
+  //   // printf("bytes_written: %d\n", bytes_written);
+
+
+  //   // everything seems fine: accumulate the written bytes, DEPRECATED: update free space left
+  //   total_written += bytes_written;
+  //   // printf("bytes_written = %ld; total_written = %ld\n", bytes_written, total_written);
+  // }
+
 }
 
 //----------------------------------------------SEPARATION----------------LINE-------------------------------------//
@@ -290,7 +306,7 @@ int defragment() {
   for(int i  = 0; i < file_count; i++){
     memset(fname, 0, sizeof(fname));
     strcpy(fname, file_name_buffer[i]);
-    copy_in_defragment(fname);
+    copy_in(fname);
   } 
 
   chdir(cwd);
@@ -645,84 +661,6 @@ int copy_out_defragment(char *fname) {
   
   fclose(real_disk_file);
   free(content_buffer);
-  return 0;
-}
-
-int copy_in_defragment(char *fname) {
-  FILE* source_file;
-  long source_file_size;
-  long free_space;
-  char buf[4096];  // chunk size
-  size_t bytes_read = 0;
-  long total_written = 0;
-
-  source_file = fopen(fname, "rb"); // Open the file in binary mode
-  if(source_file == NULL) return 7; // BAD_COMMAND;
-
-  // determine total source file size
-  fseek(source_file, 0, SEEK_END);
-  source_file_size = ftell(source_file);
-  rewind(source_file);
-
-  // get free space (byte) on hard drive
-  free_space = fsutil_freespace()*BLOCK_SECTOR_SIZE; 
-
-  if (free_space <= 0) {
-    fclose(source_file);
-    return 9; // FILE_CREATION_ERROR
-  }
-
-  // create copied new file on shell's hard drive
-  if(source_file_size < BLOCK_SECTOR_SIZE){
-    // when source_file_size < BLOCK_SECTOR_SIZE, create a file with size = source file size
-    // avoid printing null when doing "cat"
-    if(!fsutil_create(fname, source_file_size)){
-      fclose(source_file);
-      return 9; // FILE_CREATION_ERROR
-    }
-  } else {
-    if(!fsutil_create(fname, BLOCK_SECTOR_SIZE)){
-      fclose(source_file);
-      return 9; // FILE_CREATION_ERROR
-    }
-  }
-
-  // Since problems are observed for writing large files; we write data into fs in chunks
-  // Keep reading until EOF reached; 1 byte (char) each time
-  int bytes_written = 0;
-  while ((bytes_read = fread(buf, 1, 4096-2, source_file)) > 0) {
-    buf[bytes_read] = '\0';
-    if (free_space <= 0){
-      printf("free: %ld\n", free_space);
-      break;
-    } 
-
-    // there is space but not sufficient to copy in every byte
-    if (bytes_read > free_space){
-      bytes_read = free_space;
-    } 
-    // printf("bytes_read: %ld. free: %ld\n", bytes_read, free_space);
-
-    // Write the chunk; +1 for null terminator
-    if ((bytes_written = fsutil_write(fname, buf, bytes_read+1)) == -1) {
-      fclose(source_file);
-      return 11; // FILE_WRITE_ERROR something wrong happened :(
-    }
-    // printf("bytes_written: %d\n", bytes_written);
-
-    // everything seems fine: accumulate the written bytes, update free space left
-    // total_written += bytes_written;
-    total_written += bytes_read;
-    free_space -= bytes_read;
-  }
-
-  fclose(source_file);
-
-  // If not all data could be written, print a warning
-  if (free_space <= 0 && total_written < source_file_size) {
-    printf("Warning: could only write %ld out of %ld bytes (reached end of disk space)\n", total_written, source_file_size);
-  }
-
   return 0;
 }
 
