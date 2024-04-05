@@ -229,7 +229,7 @@ int defragment() {
     }
 
     if (file != NULL && file->inode != NULL) {
-      copy_out(fname);
+      copy_out_defragment(fname);
 
       // add file names to file_name_buffer
       if(file_index < file_count){
@@ -240,7 +240,7 @@ int defragment() {
       // remove all files
       remove_from_file_table(fname);
       dir_remove(dir, fname);
-
+      
     }
   }
   dir_close(dir);
@@ -250,7 +250,7 @@ int defragment() {
   for(int i  = 0; i < file_count; i++){
     memset(fname, 0, sizeof(fname));
     strcpy(fname, file_name_buffer[i]);
-    copy_in(fname);
+    copy_in_defragment(fname);
   } 
 
   chdir(cwd);
