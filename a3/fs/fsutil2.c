@@ -641,9 +641,10 @@ int copy_in_defragment(char *fname) {
     }
 
     if(strcmp(fname, "f") == 0) {
+      char buffer[5] = "fend";
       struct file *file = get_file_by_fname(fname);
       file->pos = 9274;     
-      fsutil_write(fname, "fend", 5);
+      fsutil_write(fname, buffer, 4);
     }
   }
 
