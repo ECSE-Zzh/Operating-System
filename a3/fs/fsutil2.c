@@ -17,7 +17,7 @@
 #include <unistd.h>
 #include "../interpreter.h"
 
-#define BUFFER_SIZE 4097
+#define BUFFER_SIZE 8193
 
 int fsutil_read_at(char *file_name, void *buffer, unsigned size, offset_t file_ofs); //copy_out helper function
 bool file_is_fragmented(block_sector_t *blocks, int sector_count);
