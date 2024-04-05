@@ -296,7 +296,6 @@ void recover(int flag) {
             printf("ERROR: Could not add recovered file '%s' to root directory.\n", filenameBuffer);
             continue;
           }
-          printf("Recovered inode in sector %d\n", sector);
           recovery_performed = true;
         }
       }
