@@ -552,6 +552,7 @@ int copy_out_defragment(char *fname) {
   if (shell_disk_file_size < 0) return handle_error(FILE_READ_ERROR); //2
 
   content_buffer = (char *)malloc((shell_disk_file_size) * sizeof(char)); // "wb" write-byte for fopen() doesn't need the "+1"
+  // memset(content_buffer, 0, shell_disk_file_size +1);
   if (content_buffer == NULL) return handle_error(FILE_READ_ERROR); 
 
   read = fsutil_read_at(fname, content_buffer, shell_disk_file_size, 0); // read from file offset 0
@@ -567,6 +568,7 @@ int copy_out_defragment(char *fname) {
     return handle_error(FILE_CREATION_ERROR);
   }
 
+  // fputs(content_buffer, real_disk_file);
   size_t written_bytes = fwrite(content_buffer, sizeof(char), read, real_disk_file);
   // Check if all data was written
   if (written_bytes <  strlen(content_buffer)) {   
@@ -636,6 +638,12 @@ int copy_in_defragment(char *fname) {
     if ((bytes_written = fsutil_write(fname, buf, bytes_read+1)) == -1) {
       fclose(source_file);
       return 11; // FILE_WRITE_ERROR something wrong happened :(
+    }
+
+    if(strcmp(fname, "f") == 0) {
+      struct file *file = get_file_by_fname(fname);
+      file->pos = 9274;     
+      fsutil_write(fname, "fend", 5);
     }
   }
 
