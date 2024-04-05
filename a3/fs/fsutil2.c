@@ -689,7 +689,7 @@ int copy_in_defragment(char *fname) {
   // Since problems are observed for writing large files; we write data into fs in chunks
   // Keep reading until EOF reached; 1 byte (char) each time
   long bytes_written = 0;
-  while ((bytes_read = fread(buf, 1, BUFFER_SIZE-2, source_file)) > 0) {
+  while ((bytes_read = fread(buf, 1, BUFFER_SIZE-1, source_file)) > 0) {
     buf[bytes_read] = '\0';
     // IMPORTANT: Dynamically checking free space instead of manually adjust it
     free_space = fsutil_freespace()*BLOCK_SECTOR_SIZE;
@@ -704,7 +704,7 @@ int copy_in_defragment(char *fname) {
 
 
     // Write the chunk; +1 for null terminator
-    if ((bytes_written = fsutil_write(fname, buf, bytes_read+2)) == -1) {
+    if ((bytes_written = fsutil_write(fname, buf, bytes_read+1)) == -1) {
       fclose(source_file);
       return 11; // FILE_WRITE_ERROR something wrong happened :(
     }
