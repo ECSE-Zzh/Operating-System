@@ -17,7 +17,7 @@
 #include <unistd.h>
 #include "../interpreter.h"
 
-#define BUFFER_SIZE 513
+#define BUFFER_SIZE 4097
 
 int fsutil_read_at(char *file_name, void *buffer, unsigned size, offset_t file_ofs); //copy_out helper function
 bool file_is_fragmented(block_sector_t *blocks, int sector_count);
@@ -26,10 +26,6 @@ int copy_in_defragment(char *fname);
 //defragment helper functions
 int get_size_of_files_on_disk(int *file_count);
 void create_recovered_filename(char *buffer, int bufferSize, int flag, int sectorOrFileName);
-bool is_data_referenced_in_directory(struct dir* directory, block_sector_t data_sector);
-struct inode_indirect_block_sector {
-  block_sector_t blocks[INDIRECT_BLOCKS_PER_SECTOR];
-};
 
 //----------------------------------------------SEPARATION----------------LINE-------------------------------------//
 // Copy the file on real hard dive into the shell's hard drive with the same name in the root directory
@@ -248,7 +244,6 @@ int defragment() {
   }
   dir_close(dir);
 
-
   // copy_in files; remove copied_out files on real disk
   chdir("./temp_file_storage");
   for(int i  = 0; i < file_count; i++){
@@ -295,12 +290,6 @@ void recover(int flag) {
             printf("ERROR: Could not open inode at sector %d.\n",sector);
             continue;
           }
-          // don't know why his test doesn't want recovered blocks to be marked as non-free
-          // if (!free_map_recover_inode_and_blocks(recovered_inode)) {
-          //   printf("ERROR: Failed to recover inode and its blocks at sector %d.\n", sector);
-          //   inode_close(recovered_inode);
-          //   continue;
-          // }
           inode_close(recovered_inode);
           // Add the recovered file to the directory
           if (!dir_add(root, filenameBuffer, sector, potential_inode->is_dir)) {
@@ -332,34 +321,26 @@ void recover(int flag) {
     struct dir *root = dir_open_root();
     FILE* recovered_file;
     // Start checking from sector 4; 0 for free map, 1 for root dir; ; -1 because last sector left for partition? (not sure, without -1 there is Kernel PANIC)
-    // Question: Why starting from 4? 
     for (int sector = 4; sector < block_size(hd)-1; sector++) {
       block_read(hd, sector, buf);    // read sector content
-      // PLEASE VERIFY THIS: I suppose we only want to recover a data block which is not an inode
-      // If this is false, please delete the inode type casting and its following if statement; it is only there to check whether it is not an inode
       struct inode_disk* potential_inode = (struct inode_disk*) buf;  // cast to inode_disk type
       if (potential_inode->magic != INODE_MAGIC) {  // Verify this is a data block, not an inode
-        if (strlen(buf) != 0 && !is_data_referenced_in_directory(root, sector)) { // new function; please copy int directory.c and its signature to directory.h
+        if (strlen(buf) != 0 && !is_data_referenced_in_directory(root, sector)) {
           // find non-zeroed block, restore to a file
           create_recovered_filename(filenameBuffer, sizeof(filenameBuffer), flag, sector);
           recovered_file = fopen(filenameBuffer, "wb");
-          if (recovered_file != NULL) { // added some error checking routines... not necessary tho
+          if (recovered_file != NULL) { 
             fwrite(buf, sizeof(char), strlen(buf), recovered_file);
             recovery_performed = true;
             fclose(recovered_file);
-            // printf("Recovered data block in sector %d to file %s\n", sector, filenameBuffer); // add print message
           } else {
             printf("ERROR: Could not open file '%s' for recovery.\n", filenameBuffer);
           }
-          
         }
       }
     }
     dir_close(root);
     free(buf);
-    // if (!recovery_performed) { // for debugging; DELETE this upon submission
-    //   printf("No unreferenced non-empty data blocks were recovered.\n");
-    // }
 
   } else if (flag == 2) {
     // Recover data past end of file
@@ -442,7 +423,6 @@ void recover(int flag) {
                     return;
                 }
                 block_read(hd, sector_buffer[sector_count-1], final_sector_buffer);  // read sector content
-                // printf("last sector: %s\n", final_sector_buffer);
                 // copy hidden data
                 int offset = BLOCK_SECTOR_SIZE - (hidden_char-1);
                 int index = 0;
@@ -452,11 +432,7 @@ void recover(int flag) {
                     index++;
                   } 
                 }
-                // printf("last sector2: %d\n", sector_buffer[sector_count-1]);
-                // printf("hidden data: %s\n", hidden_data);
-                // printf("hidden char: %d\n", hidden_char);
-                // printf("offset: %d, msg_len: %ld, index: %d\n", offset, strlen(hidden_data), index);
-
+               
                 // found hidden data
                 if(index > 0){
                   char filename[100];
@@ -492,7 +468,6 @@ void recover(int flag) {
   }
 
 }
-
 
 //----------------------------------------------HELPER----FUNCTIONS----START----HERE-------------------------------------//
 
@@ -543,8 +518,6 @@ int get_size_of_files_on_disk(int *file_count){
       (*file_count)++;
       sector_count = bytes_to_sectors(file->inode->data.length); 
 
-      // if(sector_count > DIRECT_BLOCKS_COUNT) sector_count++; // add one for boundary block
-
       total_sectors += sector_count; //get total number of files on hard drive
     }
   } 
@@ -561,10 +534,6 @@ void create_recovered_filename(char *buffer, int bufferSize, int flag, int secto
           break;
       case 1: // recovered data block
           snprintf(buffer, bufferSize, "recovered1-%d.txt", sectorOrFileName);
-          break;
-      case 2: // recovered hidden data
-          // WARNING: Assuming sectorOrFileName is actually a pointer to a string (file name) in this case
-          // snprintf(buffer, bufferSize, "recovered2-%s.txt", (char*)sectorOrFileName);
           break;
       default:
           printf("Invalid recovery type\n");
@@ -618,8 +587,6 @@ int copy_in_defragment(char *fname) {
   int free_space = 0;
   char buf[BUFFER_SIZE];  // chunk size
   size_t bytes_read = 0;
-  int total_written = 0;
-  // int destination_file_size = 0;
 
   source_file = fopen(fname, "rb"); // Open the file in binary mode
   if(source_file == NULL) return 7; // BAD_COMMAND;
@@ -629,42 +596,8 @@ int copy_in_defragment(char *fname) {
   source_file_size = ftell(source_file);
   rewind(source_file);
 
-  // char buf[source_file_size+1];
-
-  // free_space = fsutil_freespace()*BLOCK_SECTOR_SIZE;
-
-  // if (free_space <= 0) {
-  //   fclose(source_file);
-  //   return 9; // FILE_CREATION_ERROR
-  // }
-
-  // fread(buf, 1, source_file_size, source_file);
-  // buf[source_file_size] = '\0';
-
-  // destination_file_size = source_file_size + 1;
-  // // if(free_space < source_file_size + 1 ){
-  // //   destination_file_size = (fsutil_freespace() - 1)*BLOCK_SECTOR_SIZE; // -1 for inode
-  // //   printf("Warning: could only write %d out of %d bytes (reached end of disk space)\n", destination_file_size, source_file_size);
-  // // }
-
-  // if(!fsutil_create(fname, destination_file_size)){
-  //   fclose(source_file);
-  //   return 9; // FILE_CREATION_ERROR
-  // }
-
-  // if (fsutil_write(fname, buf, destination_file_size) == -1) {
-  //   fclose(source_file);
-  //   return 11; // FILE_WRITE_ERROR something wrong happened :(
-  // }
-
-  // fclose(source_file);
-
-  // return 0;
-
   // get free space (byte) on hard drive
   free_space = fsutil_freespace()*BLOCK_SECTOR_SIZE;
-  // printf("Free space detected in copy_in: %ld bytes\n", free_space);
-
 
   if (free_space <= 0) {
     fclose(source_file);
@@ -674,7 +607,6 @@ int copy_in_defragment(char *fname) {
   // create copied new file on shell's hard drive
   if(source_file_size < BLOCK_SECTOR_SIZE){
     // when source_file_size < BLOCK_SECTOR_SIZE, create a file with size = source file size
-    // avoid printing null when doing "cat"
     if(!fsutil_create(fname, source_file_size)){
       fclose(source_file);
       return 9; // FILE_CREATION_ERROR
@@ -700,62 +632,16 @@ int copy_in_defragment(char *fname) {
     if (bytes_read > free_space){
       bytes_read = free_space;
     }
-    // printf("bytes_read: %ld. free: %ld\n", bytes_read, free_space);
-
 
     // Write the chunk; +1 for null terminator
-    if ((bytes_written = fsutil_write(fname, buf, bytes_read+2)) == -1) {
+    if ((bytes_written = fsutil_write(fname, buf, bytes_read+1)) == -1) {
       fclose(source_file);
       return 11; // FILE_WRITE_ERROR something wrong happened :(
     }
-    // printf("bytes_written: %d\n", bytes_written);
-
-
-    // everything seems fine: accumulate the written bytes, DEPRECATED: update free space left
-    // total_written += bytes_written;
-    total_written += bytes_written;
-    // printf("bytes_written = %ld; total_written = %ld\n", bytes_written, total_written);
   }
 
   fclose(source_file);
-
-  // If not all data could be written, print a warning
-  if (free_space <= 0 && total_written < source_file_size) {
-    printf("Warning: could only write %d out of %d bytes (reached end of disk space)\n", total_written, source_file_size);
-  }
-
   return 0;
-}
-
-
-/* Checks if a data block is referenced in the specified directory; assume data_sector is a data block */
-bool is_data_referenced_in_directory(struct dir* directory, block_sector_t data_sector) {
-  char name[NAME_MAX + 1];
-  struct inode* inode = NULL;
-  bool is_referenced = false;
-
-  directory->pos = 0; // IMPORTANT: reset the directory position to start
-  while (dir_readdir(directory, name)) {
-    if (!dir_lookup(directory, name, &inode)) {
-      continue; // Skip if lookup fails
-    }
-    
-    // Fetch all data sectors associated with this inode
-    block_sector_t* data_sectors = get_inode_data_sectors(inode); 
-    size_t num_sectors = bytes_to_sectors(inode_length(inode)); 
-    // Iterate over all data sectors of this inode to check if data_sector is referenced
-    for (size_t i = 0; i < num_sectors; i++) {
-      if (data_sectors[i] == data_sector) {
-        is_referenced = true; // The data block is referenced by this file
-        break;
-      }
-    }
-    free(data_sectors); // Remember to free the dynamically allocated array
-    inode_close(inode);
-    if (is_referenced) break; // No need to check further if we already found a reference
-  }
-
-  return is_referenced; // Return true if the block is referenced; false otherwise
 }
 
 

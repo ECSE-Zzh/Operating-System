@@ -49,4 +49,5 @@ block_sector_t dir_readdir_inode(struct dir *, char name[NAME_MAX + 1]);
 
 /*User defined*/
 bool is_inode_referenced_in_directory(struct dir* directory, block_sector_t inode_sector);
+bool is_data_referenced_in_directory(struct dir* directory, block_sector_t data_sector);
 #endif /* fs/directory.h */

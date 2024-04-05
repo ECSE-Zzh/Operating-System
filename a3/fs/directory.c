@@ -393,3 +393,34 @@ bool is_inode_referenced_in_directory(struct dir* directory, block_sector_t inod
 
   return false; // Inode not found in directory
 }
+
+/* Checks if a data block is referenced in the specified directory; assume data_sector is a data block */
+bool is_data_referenced_in_directory(struct dir* directory, block_sector_t data_sector) {
+  char name[NAME_MAX + 1];
+  struct inode* inode = NULL;
+  bool is_referenced = false;
+
+  directory->pos = 0; // IMPORTANT: reset the directory position to start
+  while (dir_readdir(directory, name)) {
+    if (!dir_lookup(directory, name, &inode)) {
+      continue; // Skip if lookup fails
+    }
+    
+    // Fetch all data sectors associated with this inode
+    block_sector_t* data_sectors = get_inode_data_sectors(inode); 
+    size_t num_sectors = bytes_to_sectors(inode_length(inode)); 
+    // Iterate over all data sectors of this inode to check if data_sector is referenced
+    for (size_t i = 0; i < num_sectors; i++) {
+      if (data_sectors[i] == data_sector) {
+        is_referenced = true; // The data block is referenced by this file
+        break;
+      }
+    }
+    free(data_sectors); // Remember to free the dynamically allocated array
+    inode_close(inode);
+    if (is_referenced) break; // No need to check further if we already found a reference
+  }
+
+  return is_referenced; // Return true if the block is referenced; false otherwise
+}
+
